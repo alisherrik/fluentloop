@@ -9,7 +9,7 @@ const HELP = `FluentLoop — practise English while you build.
   node bin/fluentloop.cjs uninstall <codex|claude> --config <file> [--dry-run]
 
 Default mode: coach (model-guided feedback, no local blocking).
-english-first adds a limited Uzbek/Russian work-request gate.
+english-first adds a limited non-English work-request gate, not universal language detection.
 Always name the settings file. No trust or instruction files are edited.
 Run --dry-run first. Keep this checkout in place while installed.
 Use [fluentloop:skip] or [fluentloop:retry] at the start of a prompt.
@@ -19,7 +19,7 @@ function main(args) {
   const [action, tool, ...flags] = args;
   if (action === 'demo') {
     if (args.length !== 1) throw new Error('demo does not accept options.');
-    for (const prompt of ['Please add a test for the login handler.', 'Menga login kodni tuzat', '[fluentloop:retry] I want fix the login handler.', '[fluentloop:skip] Menga login kodni tuzat']) {
+    for (const prompt of ['Please add a test for the login handler.', 'I wants add test for login handler.', '[fluentloop:retry] I want fix the login handler.', '[fluentloop:skip] Please work on this request without coaching.']) {
       const output = handleInput(JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt }), { mode: 'english-first' });
       process.stdout.write(JSON.stringify({ prompt, output }, null, 2) + '\n');
     }

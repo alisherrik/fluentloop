@@ -6,16 +6,16 @@ const { handleInput } = require('../src/protocol.cjs');
 const event = prompt => ({ hook_event_name: 'UserPromptSubmit', prompt });
 const gate = prompt => evaluate(event(prompt), { mode: 'english-first' });
 
-for (const prompt of ['Menga login kodni tuzat', 'Iltimos kodni yoz', 'Исправь ошибку в коде', 'Создай файл проекта']) {
-  test(`limited gate recognizes: ${prompt}`, () => {
+for (const [index, prompt] of ['Menga login kodni tuzat', 'Iltimos kodni yoz', 'Исправь ошибку в коде', 'Создай файл проекта'].entries()) {
+  test(`limited gate recognizes covered fixture ${index + 1}`, () => {
     assert.equal(gate(prompt).kind, 'block');
     assert.equal(evaluate(event(prompt)).kind, 'context');
   });
 }
-for (const prompt of ['Please fix the login handler.', 'I wants fix login.', 'Fix bug', 'Salom', 'Bonjour, corrige le code.', 'Please update the manner and opening settings.']) {
-  test(`gate does not claim general language/grammar detection: ${prompt}`, () => assert.equal(gate(prompt).kind, 'context'));
+for (const [index, prompt] of ['Please fix the login handler.', 'I wants fix login.', 'Fix bug', 'Salom', 'Bonjour, corrige le code.', 'Please update the manner and opening settings.'].entries()) {
+  test(`gate does not claim general language/grammar detection: fixture ${index + 1}`, () => assert.equal(gate(prompt).kind, 'context'));
 }
-for (const prompt of [
+for (const [index, prompt] of [
   '```text\nMenga login kodni tuzat\n```',
   '~~~text\nИсправь ошибку в коде\n~~~',
   '```\nMenga login kodni tuzat',
@@ -33,7 +33,7 @@ for (const prompt of [
   'const message = "Menga login kodni tuzat";',
   'C:\\sample\\login.js', '/tmp/login.js', 'https://example.invalid/login',
   '/review Menga login kodni tuzat', '', '12345'
-]) test(`code/log/quote/command exemption: ${JSON.stringify(prompt)}`, () => assert.equal(gate(prompt).kind, 'pass'));
+].entries()) test(`code/log/quote/command exemption: fixture ${index + 1}`, () => assert.equal(gate(prompt).kind, 'pass'));
 
 test('preserves actual prose around excluded code', () => {
   assert.equal(gate('Menga login kodni tuzat\n```js\nconst x = 1;\n```').kind, 'block');
@@ -51,13 +51,13 @@ test('English rewrite can pass without stored session state', () => {
   assert.equal(gate('I want to fix the login handler.').kind, 'context');
   assert.equal(gate('Menga login kodni tuzat').kind, 'block');
 });
-for (const prefix of ['Skip English coaching for this task.', 'Skip coaching for this turn!', 'Emergency:', 'Shoshilinch:', 'Срочно:']) {
-  test(`escape or urgency: ${prefix}`, () => assert.match(gate(`${prefix}\nMenga login kodni tuzat`).context, /skip English/));
+for (const [index, prefix] of ['Skip English coaching for this task.', 'Skip coaching for this turn!', 'Emergency:', 'Shoshilinch:', 'Срочно:'].entries()) {
+  test(`escape or urgency: fixture ${index + 1}`, () => assert.match(gate(`${prefix}\nMenga login kodni tuzat`).context, /skip English/));
 }
 test('disable switch skips all coaching output', () => assert.deepEqual(evaluate(event('Menga login kodni tuzat'), { disabled: true }), { kind: 'pass' }));
 test('invalid mode is rejected by the library', () => assert.throws(() => evaluate(event('Hello'), { mode: 'invalid' })));
-for (const raw of ['', '{', 'null', '[]', '42', 'true', '{}', '{"prompt":null}', '{"hook_event_name":"Stop","prompt":"Menga login kodni tuzat"}']) {
-  test(`malformed or irrelevant input is fail-open: ${raw}`, () => assert.deepEqual(handleInput(raw), {}));
+for (const [index, raw] of ['', '{', 'null', '[]', '42', 'true', '{}', '{"prompt":null}', '{"hook_event_name":"Stop","prompt":"Menga login kodni tuzat"}'].entries()) {
+  test(`malformed or irrelevant input is fail-open: fixture ${index + 1}`, () => assert.deepEqual(handleInput(raw), {}));
 }
 test('BOM input is accepted', () => assert.ok(handleInput('\uFEFF' + JSON.stringify(event('Please fix the test.'))).hookSpecificOutput));
 test('oversized event is fail-open', () => assert.deepEqual(handleInput(JSON.stringify(event('x'.repeat(MAX_INPUT_BYTES)))), {}));

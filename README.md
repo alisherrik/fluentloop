@@ -23,7 +23,7 @@ Coach:  Clear request. Let's add the test.
 | Mode | What runs locally | What the assistant is asked to do |
 | --- | --- | --- |
 | `coach` (default) | Adds the shared coaching policy as context; never blocks locally | Review the user's work prose, offer a short correction when useful, and proceed after one retry |
-| `english-first` | Also blocks a small set of recognizable Uzbek/Russian work requests | Coach prompts that pass the local heuristic |
+| `english-first` | Also blocks a small set of recognizable non-English work requests | Coach prompts that pass the local heuristic |
 
 The local gate **does not check English grammar**. If it blocks, the prompt never reaches the model: only a static rewrite cue is shown. Model-guided coaching is fallible and cannot guarantee that an assistant waits, gives correct feedback, or obeys every coaching preference.
 
@@ -38,7 +38,7 @@ node bin/fluentloop.cjs demo
 node --test
 ```
 
-These commands use synthetic examples and no model calls. There is nothing to download with `npm install`.
+These commands use synthetic examples and no model calls. The demo shows coaching context, retry and skip; the tests also exercise the limited local gate. There is nothing to download with `npm install`.
 
 ## Install deliberately
 
@@ -78,7 +78,7 @@ The hook is stateless: it cannot remember a rejected request or a task-wide opt-
 ## What it can and cannot do
 
 - Coaching uses the language abilities of your existing assistant. Feedback defaults to simple English, with a brief native-language explanation when the model can provide one.
-- The optional gate recognizes only selected Uzbek Latin-script words and Russian Cyrillic work requests. It is not a general language detector; dialects, inflections, mixed language and other scripts may be missed. English mistakes pass through to model-guided coaching.
+- The optional gate uses a small, fixed vocabulary to recognize some requests in another language. Coverage is limited: it does not support every language or reliably identify non-English text. Dialects, inflections, mixed language and different scripts may be missed. English mistakes pass through to model-guided coaching.
 - Fenced/inline code, quotes, common log lines, paths and slash commands are excluded conservatively. Unmarked pasted content can still be mistaken for your prose. Use fences or the skip prefix.
 - Urgent-help keywords skip coaching, but no keyword list covers every emergency. The policy also asks the model never to delay urgent help.
 - Existing coaching instructions and other hooks may still apply. FluentLoop does not edit `AGENTS.md`, `CLAUDE.md`, trust, permissions, credentials or other hooks.

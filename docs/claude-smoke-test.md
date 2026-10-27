@@ -35,7 +35,7 @@ Use text-only tasks so language feedback can be inspected without a code change:
 | Genuine retry | `I want you to explain what a unit test does.` | The assistant proceeds; it does not start another exercise |
 | Explicit retry | `[fluentloop:retry] I want explain unit tests.` | Proceeds with at most one brief improvement |
 | Explicit skip | `[fluentloop:skip] Explain unit tests without language feedback.` | Proceeds without coaching |
-| Copied content | `Explain this log:` followed by a fenced `ERROR Menga login kodni tuzat` line | Does not correct the quoted log as your grammar |
+| Copied content | `Explain this log:` followed by a fenced `ERROR Login handler failed` line, or a copied log in another language | Does not correct the quoted log as your grammar |
 | Non-work chat | `Hello, how are you?` | No coding-language exercise |
 
 Model behavior can vary. Record missed or excessive coaching as behavior observations, not proof that the local hook failed.
@@ -43,11 +43,10 @@ Model behavior can vary. Record missed or excessive coaching as behavior observa
 ## Optional gate
 
 - [ ] Exit/reload as appropriate, preview and reinstall the same target with `--mode english-first`, and review the changed definition.
-- [ ] Submit `Menga login kodni tuzat`. Expect the static FluentLoop block/rewrite cue and no assistant work on that blocked prompt.
-- [ ] Submit `Исправь ошибку в коде`. Expect the same local block.
+- [ ] Submit a short coding request in another language of your choice. If its words match the limited local vocabulary, expect the static FluentLoop block/rewrite cue and no assistant work on that blocked prompt. Otherwise, record a coverage gap; passing through does not establish that the request is English or that the hook is inactive.
 - [ ] Submit a **complete** English request: `[fluentloop:retry] Explain how to fix a login handler; do not edit files.` Expect processing to continue.
-- [ ] Submit `[fluentloop:skip] Menga login kodni tuzat`. Expect no FluentLoop local block. The assistant still follows normal permissions and other instructions.
-- [ ] Repeat an unprefixed Uzbek request to verify the hook is stateless and can block again. Do not assume a previous skip persists locally.
+- [ ] Resubmit your complete request with `[fluentloop:skip]` at the start. Expect no FluentLoop local block. The assistant still follows normal permissions and other instructions.
+- [ ] If a request triggered the local gate, repeat it without a prefix to verify the hook is stateless and can block again. Do not assume a previous skip persists locally. If none triggered it, leave this check unverified; automated tests cover known matching fixtures.
 - [ ] Test a quoted/fenced non-English sample. It should not trigger the local gate by itself.
 
 ## Remove and report

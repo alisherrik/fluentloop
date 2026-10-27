@@ -1,9 +1,7 @@
 [
   { "hook_event_name": "UserPromptSubmit", "prompt": "Please add a test for the login handler." },
   { "hook_event_name": "UserPromptSubmit", "prompt": "I wants add test for login handler." },
-  { "hook_event_name": "UserPromptSubmit", "prompt": "Menga login kodni tuzat" },
-  { "hook_event_name": "UserPromptSubmit", "prompt": "Исправь ошибку в коде" },
   { "hook_event_name": "UserPromptSubmit", "prompt": "[fluentloop:retry] I want to fix the login handler." },
-  { "hook_event_name": "UserPromptSubmit", "prompt": "[fluentloop:skip] Menga login kodni tuzat" },
-  { "hook_event_name": "UserPromptSubmit", "prompt": "```text\nERROR Menga login kodni tuzat\n```" }
+  { "hook_event_name": "UserPromptSubmit", "prompt": "[fluentloop:skip] Please work on this request without coaching." },
+  { "hook_event_name": "UserPromptSubmit", "prompt": "```text\nERROR Login handler failed\n```" }
 ]

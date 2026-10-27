@@ -16,7 +16,7 @@ Recorded on **2026-10-27**. These are results from this implementation, not hist
 | Source hygiene | File inventory, personal-data/credential-indicator scan and whitespace check reviewed |
 | Package preview | `npm pack --dry-run --ignore-scripts` inspected; no package published |
 
-Coverage includes malformed/wrong-event/BOM/oversized inputs; conservative code, log, quote and command exclusions; limited Uzbek/Russian detection; English retry and explicit bypass; disable switch; urgency escape; duplicate installs and removals; mode switches; preserved foreign hooks/settings; malformed settings; edited or differently located hooks; locked settings; hardlinks and linked directories; and Windows path quoting.
+Coverage includes malformed/wrong-event/BOM/oversized inputs; conservative code, log, quote and command exclusions; limited non-English detection using selected fixtures; English retry and explicit bypass; disable switch; urgency escape; duplicate installs and removals; mode switches; preserved foreign hooks/settings; malformed settings; edited or differently located hooks; locked settings; hardlinks and linked directories; and Windows path quoting. The fixtures verify specific recognized patterns, not support for every language.
 
 The Windows sandbox initially prevented child-process tests (`spawn EPERM`). The suite then ran with permission to spawn local processes, using only synthetic fixtures. Two issues found during testing were corrected: handling Windows short-path `~` segments and the test harness's command-shell argument quoting. The final complete run above passed.
 

@@ -34,7 +34,9 @@ test('CLI help and synthetic demo run without model calls', () => {
   assert.match(run('bin/fluentloop.cjs', ['--help']).stdout, /dry-run/);
   const result = run('bin/fluentloop.cjs', ['demo']);
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /"decision": "block"/);
+  assert.match(result.stdout, /"additionalContext":/);
+  assert.match(result.stdout, /\[fluentloop:retry\]/);
+  assert.match(result.stdout, /\[fluentloop:skip\]/);
 });
 for (const args of [['install', 'codex'], ['install', 'claude', '--config'], ['install', 'claude', '--wat'], ['demo', '--oops'], ['uninstall', 'codex', '--mode', 'coach'], ['install', 'codex', '--dry-run', '--dry-run']]) {
   test(`CLI rejects invalid arguments: ${args.join(' ')}`, () => assert.equal(run('bin/fluentloop.cjs', args).status, 1));
