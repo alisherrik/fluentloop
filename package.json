@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "description": "Small English-coaching hooks for Codex CLI and Claude Code.",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/alisherrik/fluentloop.git" },
+  "homepage": "https://github.com/alisherrik/fluentloop#readme",
+  "bugs": { "url": "https://github.com/alisherrik/fluentloop/issues" },
   "engines": { "node": ">=22" },
   "bin": { "fluentloop": "bin/fluentloop.cjs" },
   "scripts": { "test": "node --test", "demo": "node bin/fluentloop.cjs demo" },
-  "files": ["bin/", "src/", "adapters/", "policy/", "examples/", "docs/", "README.md", "LICENSE-GUIDANCE.md"]
+  "files": ["bin/", "src/", "adapters/", "policy/", "examples/", "docs/", "README.md", "LICENSE", "LICENSE-GUIDANCE.md"]
 }

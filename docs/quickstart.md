@@ -2,9 +2,11 @@
 
 ## 1. Run locally
 
-Open a terminal in the FluentLoop checkout. Keep it in a stable path; no global npm installation is needed.
+Clone the public source repository, then open a terminal in the checkout. Keep it in a stable path; no global npm installation is needed.
 
 ```sh
+git clone https://github.com/alisherrik/fluentloop.git
+cd fluentloop
 node --version
 node bin/fluentloop.cjs --help
 node bin/fluentloop.cjs demo

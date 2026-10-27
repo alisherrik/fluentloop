@@ -6,7 +6,7 @@ Small, local English-coaching hooks for **Codex CLI** and **Claude Code**. Write
 
 No runtime dependencies. No separate model API. No prompt database. One shared policy, two adapters.
 
-> Prepared for sharing; publication and license selection are pending owner approval. No open-source license has been granted. The name is a working project name, with no availability or trademark claim.
+MIT-licensed and distributed as a source checkout. The package remains private to prevent accidental npm publication. The name carries no availability or trademark claim.
 
 ## A small loop, not an English exam
 
@@ -29,9 +29,11 @@ The local gate **does not check English grammar**. If it blocks, the prompt neve
 
 ## Try it without installing
 
-Requires Node.js 22 or newer. From this checkout:
+Requires Git and Node.js 22 or newer:
 
 ```sh
+git clone https://github.com/alisherrik/fluentloop.git
+cd fluentloop
 node bin/fluentloop.cjs demo
 node --test
 ```
@@ -103,6 +105,6 @@ test/                 Unit, subprocess and fixture installer tests
 docs/                 Quickstart, smoke checklist and validation status
 ```
 
-Read [validation status](docs/validation.md) for exactly what has been tested, [Claude smoke tests](docs/claude-smoke-test.md) before claiming live compatibility, and [publication steps](docs/publishing.md) before releasing. License options must be decided by the owner; see [license guidance](LICENSE-GUIDANCE.md).
+Read [validation status](docs/validation.md) for exactly what has been tested, [Claude smoke tests](docs/claude-smoke-test.md) before claiming live compatibility, and [publication steps](docs/publishing.md) before releasing. See the [MIT license](LICENSE) and [distribution notes](LICENSE-GUIDANCE.md).
 
 The adapter protocol follows the current [Codex UserPromptSubmit documentation](https://learn.chatgpt.com/docs/hooks#userpromptsubmit) and [Claude Code hook reference](https://code.claude.com/docs/en/hooks#userpromptsubmit). FluentLoop is an independent project, not an official OpenAI or Anthropic product.

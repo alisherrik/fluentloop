@@ -27,7 +27,7 @@ The Windows sandbox initially prevented child-process tests (`spawn EPERM`). The
 - macOS, Linux, other Node versions, and older host versions: not exercised. Node 22+ is the intended baseline, not a tested matrix.
 - No trusted-hook review was performed. Existing user settings and instructions were not changed; the three inspected source files had identical SHA-256 values before and after implementation.
 - No cloud orchestration compatibility, universal grammar accuracy, reliable language identification, or deterministic model obedience is claimed.
-- No GitHub remote, public push, package publication or license selection was performed.
+- Public GitHub distribution at `alisherrik/fluentloop` and the MIT license were subsequently approved by the owner. npm publication remains out of scope; no package has been published. No CI workflow is included, so the local fixture suite remains the automated validation evidence.
 
 ## Protocol references
 

@@ -1,12 +1,9 @@
-# License decision required
+# License and distribution notes
 
-No license has been selected or granted for this project. `package.json` intentionally uses `"private": true` and `"license": "UNLICENSED"`. There is no `LICENSE` file.
+The owner approved the MIT license and public distribution at [alisherrik/fluentloop](https://github.com/alisherrik/fluentloop). The complete grant and conditions are in [LICENSE](LICENSE), with copyright attributed to the verified GitHub identity `alisherrik` for 2026.
 
-Before calling this open source or publishing it for others to reuse, the owner should:
+`package.json` declares `"license": "MIT"`. It retains `"private": true` to prevent accidental npm publication. This flag restricts package registry publishing; it does not change the MIT license or the GitHub repository's visibility.
 
-1. Confirm who owns the new code and who can authorize a license.
-2. Choose the intended license and copyright holder text. If evaluating a named license, read its official text and seek appropriate advice where needed.
-3. Explicitly approve that choice before adding its complete text as `LICENSE` and updating package metadata.
-4. Separately approve the GitHub destination/visibility and any package registry publication.
+The current distribution is a source checkout. npm publication is not part of this release. Any future registry release needs a separate owner decision and a fresh package-content review.
 
-This file is a release checklist, not a license, permission grant or substitute for legal advice. No personal configuration is included with the source. Examples and test inputs are synthetic.
+Only project source, documentation, and synthetic examples/tests are intended for distribution. Personal tool configuration, credentials, logs, backups and session history are excluded.
