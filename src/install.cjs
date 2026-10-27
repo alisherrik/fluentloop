@@ -15,7 +15,7 @@ function makeHandler(tool, mode, root = ROOT) {
   if (tool === 'claude') return { ...base, command: 'node', args: [script, '--fluentloop-managed=v1', '--mode', mode] };
   // Codex shell commands must be safe across cmd, PowerShell and POSIX shells.
   // Reject shell-active paths rather than guessing which shell will run them.
-  if (!/^[\p{L}\p{N} _./:()~\-]+$/u.test(script)) throw new Error('Codex requires a checkout path containing only letters, digits, spaces, _, -, ., /, :, ~, or parentheses. Move the checkout to a simple path.');
+  if (!/^[\p{L}\p{N} _./:()~\-]+$/u.test(script)) throw new Error('Codex hook paths support only letters, digits, spaces, _, -, ., /, :, ~, or parentheses. Choose a simple --data-dir (or checkout path for the low-level installer).');
   return { ...base, command: `node "${script}" --fluentloop-managed=v1 --mode ${mode}` };
 }
 
@@ -28,11 +28,16 @@ function validateConfig(config) {
   }
 }
 
-function plan(config, { action, tool, mode = 'coach', root = ROOT }) {
+function plan(config, { action, tool, mode = 'coach', root = ROOT, knownRoots = [] }) {
   if (!['install', 'uninstall'].includes(action)) throw new Error('Action must be install or uninstall.');
   validateConfig(config);
   const desired = makeHandler(tool, mode, root);
   const known = MODES.map(m => makeHandler(tool, m, root));
+  for (const previousRoot of new Set(knownRoots)) {
+    // A temporary package path may be shell-active even when the durable root is safe.
+    try { known.push(...MODES.map(m => makeHandler(tool, m, previousRoot))); }
+    catch { /* Such a path could not have been installed by our Codex shell adapter. */ }
+  }
   const next = structuredClone(config);
   let found = 0;
   const groups = [];
@@ -111,4 +116,4 @@ function install({ configPath, dryRun = false, ...options }) {
   }
   return summary;
 }
-module.exports = { makeHandler, plan, install };
+module.exports = { makeHandler, plan, install, rejectLinks, ROOT };

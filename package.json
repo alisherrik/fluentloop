@@ -1,6 +1,6 @@
 {
   "name": "fluentloop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Small English-coaching hooks for Codex CLI and Claude Code.",
   "private": true,
   "license": "MIT",
@@ -9,6 +9,6 @@
   "bugs": { "url": "https://github.com/alisherrik/fluentloop/issues" },
   "engines": { "node": ">=22" },
   "bin": { "fluentloop": "bin/fluentloop.cjs" },
-  "scripts": { "test": "node --test", "demo": "node bin/fluentloop.cjs demo" },
+  "scripts": { "test": "node --test", "test:package": "node scripts/verify-package.cjs", "demo": "node bin/fluentloop.cjs demo" },
   "files": ["bin/", "src/", "adapters/", "policy/", "examples/", "docs/", "README.md", "LICENSE", "LICENSE-GUIDANCE.md"]
 }

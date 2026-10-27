@@ -8,8 +8,11 @@ The owner approved public GitHub distribution at **alisherrik/fluentloop** under
 - [ ] Confirm there are no personal hooks, host configuration, credentials, environment files, local logs, backups or session histories. `.gitignore` is a convenience, not a substitute for review.
 - [ ] Check author metadata. Use a verified public/noreply identity if personal email disclosure is unwanted.
 - [ ] Run `node --test` and review [validation.md](validation.md). Do not turn fixture results into live host compatibility claims.
+- [ ] Run `npm run test:package` to check the packed CLI, isolated installation and durable runtime after npm cache removal.
 - [ ] Complete the manual Claude checklist and record the actual host/version outcomes before advertising live validation. Test Codex activation separately too.
 - [ ] Inspect `npm pack --dry-run --ignore-scripts` for a package file preview. The MIT-licensed package is intentionally marked private; do not publish it to npm now.
 - [ ] Push only this standalone repository to the approved destination. Verify the remote commit, public visibility, README links, and exact-commit CI if workflows are present.
 
-The runtime source, bundled policy and installer have no third-party dependencies. Current distribution is a source checkout. Generated hook settings contain machine-local paths and should not be committed as portable examples.
+The runtime source, bundled policy and installer have no third-party dependencies. Current distribution is GitHub source or locally packed tarballs. Generated hook settings contain machine-local paths and should not be committed as portable examples.
+
+Registry readiness was checked read-only on 2026-10-27: `fluentloop` returned npm `E404`; `npm whoami` returned `ENEEDAUTH`. The candidate name is **fluentloop**, but this is not a reservation or a guarantee of publishability. No account login or credential changes were made. The shorter `npx fluentloop init` must remain labeled future-only until an approved registry release exists.

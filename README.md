@@ -6,7 +6,7 @@ Small, local English-coaching hooks for **Codex CLI** and **Claude Code**. Write
 
 No runtime dependencies. No separate model API. No prompt database. One shared policy, two adapters.
 
-MIT-licensed and distributed as a source checkout. The package remains private to prevent accidental npm publication. The name carries no availability or trademark claim.
+MIT-licensed. Install from GitHub today; no npm registry release has been published. The package remains private to prevent accidental npm publication. The name carries no availability or trademark claim.
 
 ## A small loop, not an English exam
 
@@ -27,9 +27,35 @@ Coach:  Clear request. Let's add the test.
 
 The local gate **does not check English grammar**. If it blocks, the prompt never reaches the model: only a static rewrite cue is shown. Model-guided coaching is fallible and cannot guarantee that an assistant waits, gives correct feedback, or obeys every coaching preference.
 
-## Try it without installing
+## Get started
 
-Requires Git and Node.js 22 or newer:
+With Node.js 22+, npm and Git installed, run:
+
+```sh
+npx github:alisherrik/fluentloop init
+```
+
+1. Choose **Codex CLI**, **Claude Code**, or **both**.
+2. Review the detected settings paths and hook preview. Default scope is your user account, across projects.
+3. Type `y` to apply. Enter or `n` cancels without writing files.
+
+Then open `/hooks` in your coding tool to review activation. FluentLoop never approves trust or changes permissions. Restart the host if needed. **Installing settings is not proof of live activation.**
+
+This command fetches this GitHub repository through npm. The shorter **`npx fluentloop init` is a future registry command**, not available from this project yet. Do not substitute an unrelated registry package.
+
+### Preview, project scope, or remove
+
+```sh
+npx github:alisherrik/fluentloop init --tool both --dry-run
+npx github:alisherrik/fluentloop init --scope project
+npx github:alisherrik/fluentloop uninstall
+```
+
+For project scope, run from the project root or pass `--project "/path/to/project"`. Settings in other scopes remain untouched. A script can explicitly confirm with `--tool codex --yes`. Choose the optional gate with `--mode english-first`; the default is `coach`.
+
+Setup copies only the bundled hook runtime and license to `~/.fluentloop/runtimes/<content-hash>`. The installed hook survives npm cache cleanup, package removal and moving a checkout. Repeating setup is safe. Uninstall removes matching hooks from the selected settings and retains runtime files in case another scope uses them. Node must remain on the host's `PATH`.
+
+See the [quickstart](docs/quickstart.md) for a global command, local tarballs, exact config paths, environment overrides and migration from v0.1. To try the source without installing hooks:
 
 ```sh
 git clone https://github.com/alisherrik/fluentloop.git
@@ -38,29 +64,7 @@ node bin/fluentloop.cjs demo
 node --test
 ```
 
-These commands use synthetic examples and no model calls. The demo shows coaching context, retry and skip; the tests also exercise the limited local gate. There is nothing to download with `npm install`.
-
-## Install deliberately
-
-Keep this checkout in a stable location. FluentLoop references its adapter by absolute path; it does not copy itself into your home folder. Node must be on the coding tool's `PATH`.
-
-For a project-local Claude setup, run from the FluentLoop checkout and replace the example path:
-
-```sh
-node bin/fluentloop.cjs install claude --config "/path/to/project/.claude/settings.local.json" --dry-run
-node bin/fluentloop.cjs install claude --config "/path/to/project/.claude/settings.local.json"
-```
-
-For project-local Codex:
-
-```sh
-node bin/fluentloop.cjs install codex --config "/path/to/project/.codex/hooks.json" --dry-run
-node bin/fluentloop.cjs install codex --config "/path/to/project/.codex/hooks.json"
-```
-
-On Windows, use paths such as `"C:/Projects/demo/.codex/hooks.json"`. See the [quickstart](docs/quickstart.md) for Windows, user-wide targets, activation and removal. **Settings installation is not proof of hook activation.** Review hooks in the host's `/hooks` interface and restart the host session as needed; FluentLoop never enables trust for you.
-
-Add `--mode english-first` to both preview and install commands to opt into the limited gate. Run install again with `--mode coach` to change back. Repeating the same install is a no-op.
+The demo and tests use synthetic inputs and no model calls.
 
 ## Stay in control
 
@@ -89,19 +93,22 @@ The hook reads the event from standard input and a bundled policy file. It does 
 
 Your host assistant still handles prompts under its own data and retention settings. Context injection uses tokens in that existing conversation; FluentLoop's hook itself does not make a paid model request.
 
-Install/uninstall preserves unrelated JSON values and hooks, but reformats a changed JSON file with two-space indentation. Dry-run shows only the target and FluentLoop's own change. Edited FluentLoop handlers or handlers from a different checkout trigger a refusal so you can review them manually. Uninstall before moving or deleting this checkout.
+Setup/removal preserves unrelated JSON values and hooks, but reformats a changed JSON file with two-space indentation. The preview shows only FluentLoop's paths and hook definitions, not unrelated settings. Modified or unrecognized FluentLoop handlers trigger a refusal. A multi-tool operation checks all targets first; if a later write fails, it reports completed targets so you can safely rerun it.
 
 ## Project map
 
 ```text
 adapters/             Codex and Claude executable entry points
-bin/fluentloop.cjs    Install, uninstall, help and local demo
+bin/fluentloop.cjs    Guided init, uninstall, help and local demo
+src/setup.cjs         Tool selection, path detection and confirmation
+src/runtime.cjs       Persistent bundled runtime, independent of npm cache
 src/engine.cjs        Shared prose filtering and optional gate
 src/protocol.cjs      Bounded stdin and hook JSON protocol
 src/install.cjs       Explicit-target JSON merge/removal
 policy/coaching.md   Shared model-facing coaching policy
 examples/prompts.json Synthetic input examples
 test/                 Unit, subprocess and fixture installer tests
+scripts/              Offline packed-package verification
 docs/                 Quickstart, smoke checklist and validation status
 ```
 

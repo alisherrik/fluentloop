@@ -1,98 +1,116 @@
 # Quickstart
 
-## 1. Run locally
+## One command from GitHub
 
-Clone the public source repository, then open a terminal in the checkout. Keep it in a stable path; no global npm installation is needed.
+Install Node.js 22+ (with npm) and Git, then run:
 
 ```sh
-git clone https://github.com/alisherrik/fluentloop.git
-cd fluentloop
-node --version
-node bin/fluentloop.cjs --help
-node bin/fluentloop.cjs demo
-node --test
+npx github:alisherrik/fluentloop init
 ```
 
-Node 22+ is the intended runtime. Only the versions in [validation.md](validation.md) have been exercised. Use a host version with the documented `UserPromptSubmit` hook support; there is no verified minimum host version yet.
+npm may ask to download the package. FluentLoop then asks which tool to set up: **Codex CLI**, **Claude Code**, or **both**. It shows the selected paths, runtime copy and exact hook definition before asking `Apply these changes? [y/N]`. Only `y` or `yes` applies changes. A blank response, `n`, or end of input writes nothing.
 
-## 2. Choose one target
+Default scope is **user**, across your projects. The chooser marks an existing settings file as “settings found”; this does not prove the host is installed or its hook is active.
+
+**This project is not published to the npm registry.** `npx fluentloop init` is an intended future shortcut, pending a separate registry release. Use the GitHub command above today. GitHub source is fetched from `main`; to pin a reviewed commit, use `npx github:alisherrik/fluentloop#<commit> init` with a real commit SHA.
+
+If you prefer a reusable global command:
+
+```sh
+npm install --global github:alisherrik/fluentloop
+fluentloop init
+```
+
+Package installation alone does not edit any host settings. There are no install lifecycle scripts. Avoid administrator privileges unless your own npm setup requires them; `npx` avoids a global package install.
+
+## Review activation in your host
+
+Open `/hooks` in the selected coding tool, review the adapter and complete the host's ordinary activation/trust process yourself if you choose. Restart the host if it has not reloaded settings. FluentLoop never approves trust, changes permissions or launches a model session. Follow the [Claude smoke checklist](claude-smoke-test.md) for a live check.
+
+## Useful commands
+
+The examples below use `fluentloop` after a global install. With no global install, replace it with `npx github:alisherrik/fluentloop`. From a source checkout, use `node bin/fluentloop.cjs`.
+
+```sh
+fluentloop init --tool both --dry-run
+fluentloop init --tool claude --scope project
+fluentloop init --tool codex --mode english-first
+fluentloop init --tool both --yes
+fluentloop uninstall
+fluentloop uninstall --tool both --dry-run
+fluentloop uninstall --tool both --yes
+```
+
+`--yes` is explicit noninteractive confirmation, not a host trust bypass. It requires `--tool`; the preview still prints. `--dry-run` also requires `--tool` and writes neither runtime nor settings. Default mode is `coach`; `english-first` adds only a limited non-English vocabulary gate. Both support `[fluentloop:skip]` and `[fluentloop:retry]` at the start of your complete request.
+
+## Where setup writes
 
 | Scope | Codex | Claude Code |
 | --- | --- | --- |
+| User (default) | `~/.codex/hooks.json` | `~/.claude/settings.json` |
 | Project | `<project>/.codex/hooks.json` | `<project>/.claude/settings.local.json` |
-| User-wide | `~/.codex/hooks.json` | `~/.claude/settings.json` |
 
-Choose project scope first for a trial. Pass the real path, not the literal `<project>` or an unexpanded `~`. If using a custom Codex home, target its hooks file explicitly. FluentLoop does not discover or change additional configuration layers. Avoid installing the same adapter at both project and user scope: Codex can run hooks from multiple layers.
+User scope respects `CODEX_HOME` and `CLAUDE_CONFIG_DIR` when set. On Windows, the default home comes from `USERPROFILE`; on macOS/Linux it comes from the OS home directory. `--home <folder>` selects an alternate home; explicit config-directory environment variables still take precedence. No transcript or session-history directory is read.
 
-The installer requires plain JSON. Invalid JSON, comments, trailing commas, unexpected hook shapes, linked paths, or edited FluentLoop definitions are refused. Make a backup outside any shared repository if desired; the installer creates no backup containing your settings.
+Project scope uses the current directory, or the explicit `--project` folder. Run from your project root; worktree/shared host settings can have different precedence. The preview is the source of truth for the files FluentLoop will touch. Keep generated local settings out of commits yourself; FluentLoop does not edit `.gitignore` or Git configuration.
 
-### Windows PowerShell
-
-From the FluentLoop checkout, choose a disposable project you own:
-
-```powershell
-node bin/fluentloop.cjs install claude --config "C:/Projects/english-demo/.claude/settings.local.json" --dry-run
-node bin/fluentloop.cjs install claude --config "C:/Projects/english-demo/.claude/settings.local.json"
-
-node bin/fluentloop.cjs install codex --config "C:/Projects/english-demo/.codex/hooks.json" --dry-run
-node bin/fluentloop.cjs install codex --config "C:/Projects/english-demo/.codex/hooks.json"
-```
-
-For an intentional user-wide install, replace the target with `"$HOME/.claude/settings.json"` or `"$HOME/.codex/hooks.json"`. The tool never assumes this scope.
-
-Claude's adapter uses the documented executable-plus-arguments form with `node` and a separate script path. Codex uses a quoted command string. For Codex, checkout paths may contain letters, digits, spaces, `_`, `-`, `.`, `/`, `:`, `~` (including Windows short paths), and parentheses; shell-active characters are rejected. Move the checkout to a simple path before installation if needed. The settings-file path is separate and is never placed in a shell command.
-
-### macOS / Linux shell
+To choose a specific file:
 
 ```sh
-node bin/fluentloop.cjs install claude --config "$HOME/Projects/english-demo/.claude/settings.local.json" --dry-run
-node bin/fluentloop.cjs install claude --config "$HOME/Projects/english-demo/.claude/settings.local.json"
-node bin/fluentloop.cjs install codex --config "$HOME/Projects/english-demo/.codex/hooks.json" --dry-run
-node bin/fluentloop.cjs install codex --config "$HOME/Projects/english-demo/.codex/hooks.json"
+fluentloop init --tool claude --config "C:/Projects/demo/.claude/settings.local.json"
+fluentloop init --tool codex --scope project --project "/path/to/project"
 ```
 
-These platforms remain untested. Generated settings contain a machine-local absolute path; share the checkout and instructions, not generated local settings.
+`--config` requires a single tool. The advanced aliases `install codex --config <file>` and `uninstall codex --config <file>` remain available, and now also require confirmation or `--yes` before writes.
 
-## 3. Review activation
+## Runtime portability and updates
 
-Start the host in your chosen project and inspect `/hooks`. Check the adapter path and event. Complete the host's normal review yourself if you choose to activate it. Codex may require review again after a hook definition changes. FluentLoop does not set trust, bypass trust, change host permissions, or launch the host.
+After confirmation, setup copies only the bundled adapters, engine, protocol, policy and MIT license into `~/.fluentloop/runtimes/<content-hash>`, with a small ownership manifest. There are no prompt logs or personal configuration copies. Use `--data-dir <folder>` to choose another location; reuse it for later setup/removal.
 
-Use [the Claude checklist](claude-smoke-test.md) to record the actual behavior. Merely installing JSON or running an adapter directly does not prove live activation. Restart after settings changes if the host has not reloaded them.
+Runtime directories are immutable: existing files are verified, and different bundled content gets a new directory. Re-running setup updates recognized older runtime hooks only in the selected settings. Other scopes keep their prior runtime until you run setup there too. Review the resulting hook change in the host. Modified runtimes/handlers or unrecognized checkout references are refused rather than overwritten.
 
-## 4. Pick a coaching mode
+Clearing npm's cache, uninstalling the CLI package, or moving your source checkout does not break a runtime-backed hook. Node must remain on the host's `PATH`. Claude uses executable-plus-arguments hooks; Codex uses a quoted command string. Codex's runtime path permits letters, digits, spaces, `_`, `-`, `.`, `/`, `:`, `~` and parentheses. If your home contains shell-active characters, choose a simple `--data-dir` path. macOS/Linux and older host versions remain untested.
+
+## Safe removal
+
+Run `fluentloop uninstall`, select the tools, review and confirm. For project scope or overrides, pass the same `--scope`, `--project`, `--config`, `--home` or `--data-dir` options you used to set up. Removal affects only the selected files; it does not search every project on your disk.
+
+Only exact recognized FluentLoop handlers are removed, including duplicates. Other hooks and settings remain; changed JSON is reformatted with two-space indentation. Empty hook containers are pruned and the settings file may remain as `{}`. Repeated removal is safe. Runtime directories are intentionally retained because other scopes may reference them. Remove runtime storage manually only after removing all references. No host trust records are deleted.
+
+All selected targets are checked before any write. Settings are replaced atomically one file at a time; setup is not a cross-file transaction. If a later write fails (for example, another installer holds a lock), the CLI lists completed targets. Fix the issue and rerun safely.
+
+For v0.1 checkout-based installs, running v0.2 `init` from the original checkout can migrate that checkout's hooks. If a new package cannot recognize the old reference, use the original checkout to uninstall it first, or manually remove only its reviewed handler. Do not remove whole groups containing other hooks.
+
+## Local package verification, no registry required
+
+From a source checkout:
 
 ```sh
-node bin/fluentloop.cjs install claude --config "/path/to/settings.local.json" --mode english-first --dry-run
-node bin/fluentloop.cjs install claude --config "/path/to/settings.local.json" --mode english-first
+node --test
+npm run test:package
 ```
 
-Use the same tool and target you selected earlier; replace the sample path. Re-run with `--mode coach` to restore the default. Both modes offer `[fluentloop:skip]` and `[fluentloop:retry]` prefixes. A retry is a declared coaching preference, not a tracked counter. The engine stores no task or session state.
+The package check packs the source, installs it into a temporary prefix, executes its command shim and uses offline `npm exec` with the tarball. It exercises dry-run, setup, duplicate setup and removal in an isolated home, and verifies both hooks after removing the npm cache and installed package.
 
-## 5. Uninstall
-
-From the same checkout, targeting the same settings file:
+To pack and try it yourself:
 
 ```sh
-node bin/fluentloop.cjs uninstall claude --config "/path/to/settings.local.json" --dry-run
-node bin/fluentloop.cjs uninstall claude --config "/path/to/settings.local.json"
-node bin/fluentloop.cjs uninstall codex --config "/path/to/hooks.json" --dry-run
-node bin/fluentloop.cjs uninstall codex --config "/path/to/hooks.json"
+npm pack --ignore-scripts
+npm exec --yes --package ./fluentloop-0.2.0.tgz -- fluentloop init
 ```
 
-Only exact FluentLoop handlers for this checkout are removed, including exact duplicates. Other handlers in the same group survive. Empty containers created by removal are pruned; the settings file is retained, possibly as `{}`. Repeated removal is safe. No source files or host trust records are deleted. Restart the host if necessary.
-
-If you edited the generated handler/group or moved the checkout, automatic changes stop. Restore the original definition and use its original checkout, or manually remove only the reviewed FluentLoop handler. Do not delete an entire settings file or a group containing other hooks.
+Here npm's `--yes` accepts the package download/install; FluentLoop still asks before writing settings. No npm registry publication is needed. The package retains `private: true` to prevent accidental publication.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
-| No coaching | `/hooks`, host version, selected settings scope, trusted project, correct path, `node` on the host PATH, and `FLUENTLOOP_DISABLED` |
-| Gate misses a language | Expected for unsupported words/languages; use model-guided mode |
-| Gate blocks pasted text | Fence the pasted code/log or use `[fluentloop:skip]` |
-| Assistant keeps asking for rewrites | Start the complete request with `[fluentloop:retry]`; other instructions may also apply |
-| Duplicate coaching | Check all active hook sources and any existing coaching instructions yourself |
-| Installer reports `EEXIST` | Another installer may be active. After it finishes, retry. Remove only the adjacent `.fluentloop.lock` if you have verified it is stale |
-| Host does not understand Claude `args` | Update to a host supporting the documented exec form, or leave FluentLoop uninstalled; no older-shell fallback is claimed |
+| No coaching | `/hooks`, host version, selected scope, trust review, Node on the host PATH, and `FLUENTLOOP_DISABLED` |
+| Input ended before confirmation | Use a terminal, or supply explicit `--tool` and `--yes` for a script |
+| Unexpected target | Check scope, `--project`, `CODEX_HOME`, `CLAUDE_CONFIG_DIR` and the preview |
+| Invalid JSON or edited hook | Fix the selected file or review the changed handler; no automatic overwrite |
+| `EEXIST` lock error | Wait for the other installer; remove an adjacent `.fluentloop.lock` only after verifying it is stale |
+| Gate misses a request | Expected for unsupported vocabulary; use model-guided `coach` mode |
+| Host does not understand Claude `args` | Use a host supporting the documented exec form; no older-shell fallback is claimed |
 
-Hook policy updates take effect when the adapter next reads its policy file. Review changes before updating a checkout that an active hook executes.
+See [validation status](validation.md) for the exact tested versions and remaining live-test limits.

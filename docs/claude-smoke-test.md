@@ -19,8 +19,8 @@ Hook review / reload steps:
 ## Local preflight (no model)
 
 - [ ] Run `node --test` from the FluentLoop checkout.
-- [ ] Dry-run a `claude` install into the disposable project's `.claude/settings.local.json`; confirm a single `UserPromptSubmit` handler with a `node` executable and separate `args`.
-- [ ] Install `coach` mode, then repeat installation. The second result should say `changed: false`.
+- [ ] Run `node bin/fluentloop.cjs init --tool claude --scope project --project "/path/to/disposable-project" --dry-run`; confirm a single `UserPromptSubmit` handler with a `node` executable and separate `args`.
+- [ ] Run the same command without `--dry-run`, review its paths and type `y`. Default mode is `coach`. Repeat setup; it should report `Already up to date`.
 - [ ] Confirm unrelated settings/hooks remain. Do not include their private values in a report.
 - [ ] Start Claude in the disposable project, review `/hooks`, and follow its normal review/restart process. Check the installed path and event.
 
@@ -51,7 +51,7 @@ Model behavior can vary. Record missed or excessive coaching as behavior observa
 
 ## Remove and report
 
-- [ ] Dry-run and uninstall from the same checkout/target. Repeat removal: `changed: false`.
+- [ ] Run `uninstall --tool claude --scope project --project "/path/to/disposable-project" --dry-run`, then repeat without `--dry-run` and confirm. Use the same home/data directory if you overrode them. Repeating removal should report `Already up to date`.
 - [ ] Review the remaining JSON and confirm unrelated hooks/settings survived.
 - [ ] Restart/reload Claude, confirm FluentLoop is absent in `/hooks`, and check that its added coaching stops.
 - [ ] Report versions, commit, expected/observed outcomes and sanitized errors only. Do not share settings files, credentials, logs, session-history directories or transcripts.

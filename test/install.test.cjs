@@ -154,13 +154,13 @@ test('CLI install and uninstall complete the real fixture lifecycle', t => {
   for (const tool of ['codex', 'claude']) {
     const configPath = path.join(dir, `${tool} settings.json`);
     fs.writeFileSync(configPath, '\uFEFF' + JSON.stringify(original()));
-    const invoke = (action, flags = []) => spawnSync(process.execPath, [path.join(ROOT, 'bin/fluentloop.cjs'), action, tool, '--config', configPath, ...flags], { encoding: 'utf8' });
+    const invoke = (action, flags = []) => spawnSync(process.execPath, [path.join(ROOT, 'bin/fluentloop.cjs'), action, tool, '--config', configPath, '--home', dir, '--yes', ...flags], { encoding: 'utf8', env: { ...process.env, HOME: dir, USERPROFILE: dir, CODEX_HOME: '', CLAUDE_CONFIG_DIR: '' } });
     const preview = invoke('install', ['--dry-run']);
     assert.equal(preview.status, 0, preview.stderr);
     assert.equal(fs.readFileSync(configPath, 'utf8')[0], '\uFEFF');
     const installed = invoke('install', ['--mode', 'english-first']);
     assert.equal(installed.status, 0, installed.stderr);
-    assert.equal(JSON.parse(invoke('install', ['--mode', 'english-first']).stdout).changed, false);
+    assert.match(invoke('install', ['--mode', 'english-first']).stdout, /Already up to date/);
     const removed = invoke('uninstall');
     assert.equal(removed.status, 0, removed.stderr);
     assert.deepEqual(read(configPath), original());
