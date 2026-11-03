@@ -17,7 +17,7 @@ export function createMcpServer(store: McpStore) {
   });
   server.registerTool('save_correction', {
     title: 'Save an English correction',
-    description: 'Save exactly one correction to the authenticated user's FluentLoop notebook after explicit upload consent. Never call automatically. Reuse request_id for retries.',
+    description: "Save exactly one correction to the authenticated user's FluentLoop notebook after explicit upload consent. Never call automatically. Reuse request_id for retries.",
     inputSchema: correctionInput,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
   }, async (input) => {
