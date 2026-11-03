@@ -1,0 +1,29 @@
+{
+  "name": "fluentloop-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node test/correction.test.ts && node test/mcp.test.ts && node test/redirect.test.ts && node test/health.test.ts && node test/session-epoch.test.ts && node test/production-schema.test.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.49.0",
+    "next": "^16.4.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.14",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}
