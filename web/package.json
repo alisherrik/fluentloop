@@ -7,14 +7,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node test/correction.test.ts && node test/mcp.test.ts && node test/redirect.test.ts && node test/health.test.ts && node test/session-epoch.test.ts && node test/production-schema.test.ts"
+    "test": "node test/correction.test.ts && node test/mcp.test.ts && node test/redirect.test.ts && node test/mcp-token.test.ts && node test/mcp-handler.test.ts && node test/user-jwt-database.test.ts && node test/protocol.test.ts && node test/token.test.ts && node test/health.test.ts && node test/session-epoch.test.ts && node test/mcp-admission.test.ts && node test/production-schema.test.ts && node test/mcp-route.test.ts && node test/native-http.test.ts && node test/consent-session.test.ts && node test/user-jwt-adapter.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.49.0",
+    "jose": "^6.2.15",
     "next": "^16.4.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.14",

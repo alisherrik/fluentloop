@@ -1,7 +1,6 @@
-import { unavailable } from '../../lib/mcp-unavailable.ts';
-// Kept closed until end-to-end OAuth, RLS, grants and deployment checks pass.
+import { createMcpRoute } from '../../lib/mcp-route.ts';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const GET = unavailable;
-export const POST = unavailable;
-export const DELETE = unavailable;
+export const GET = createMcpRoute();
+export const POST = GET;
+export const DELETE = GET;

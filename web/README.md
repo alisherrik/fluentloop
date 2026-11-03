@@ -1,23 +1,15 @@
-# FluentLoop web foundation
+# FluentLoop web
 
-This Next.js and TypeScript application provides a manual, opt-in corrections notebook. Its intended authentication is Google sign-in through Supabase. The existing FluentLoop CLI and hooks remain offline and are not connected to this application.
+A corrections notebook with opt-in MCP uploads. Local FluentLoop hooks remain offline.
 
-**Status:** the application is not yet production-ready. Google sign-in, hosted database policies and session behavior require end-to-end testing against the target deployment. The public MCP endpoint, its resource metadata and OAuth consent page are disabled. There is no working MCP connector, automated correction upload or active grant-creation flow.
+Use Node 22.18 or later. Run npm ci, npm test, npm run typecheck and npm run build. Configure the public values in .env.example for the target Supabase project and site origin. No runtime service-role/admin secret is required.
 
-## Local development
+MCP stays closed unless MCP_ENABLED=true. Before activation, review and apply supabase/migrations/006_user_jwt_mcp.sql directly after the existing production_dashboard.sql foundation. Do not layer it over historical drafts 003 or 005. The transaction aborts on conflicting draft objects or missing Auth session prerequisites. It does not register a client, enable OAuth, configure a hook or deploy the application.
 
-Requirements: Node.js 22.18 or later, npm, and a separately configured Supabase project.
+An approved setup requires Supabase OAuth with public PKCE clients, the app's /oauth/consent authorization path, asymmetric signing, and the fluentloop_access_token_hook. Each trusted mcp_clients registration must include its exact resource URL ending in /mcp and the exact Supabase Auth issuer ending in /auth/v1. Keep unrestricted dynamic registration disabled when using pre-registered clients. Review actual callback URLs with each client.
 
-1. Run `npm ci`. Copy `.env.example` to `.env.local`, and supply the project's URL and **publishable** key. Keep secret or service-role credentials out of browser variables and source control.
-2. For an empty Supabase project, review `PRODUCTION_SCHEMA_REVIEW.md` and `supabase/production_dashboard.sql`. Confirm the intended project and obtain approval before applying the schema. Never run it over existing tables. Afterward review `supabase/production_verify.sql` and perform an isolated, rollback-only two-user authorization test.
-3. Configure an authorized Google OAuth web client in Google Cloud and its Google provider in Supabase. Register the exact Supabase callback from that project's provider configuration with Google. Configure the Supabase Site URL and allow the app's `/auth/callback` for the intended site origin. Never put the Google client secret in this repository, a public variable, or chat.
-4. For local development set `NEXT_PUBLIC_SITE_URL=http://localhost:3000`, run `npm run dev`, and open `http://localhost:3000`. Google login requires a configured provider and must be tested; an empty environment displays the setup-needed state.
-5. Run `npm test` and `npm run build`. The schema tests use a local emulated database and do not verify hosted Supabase.
+The app verifies JWT signature, issuer and exact resource audience. Authenticated SQL wrappers derive identity from the verified request claims and check the live user/client/session within the insertion transaction. Private internals cannot be called by browser roles. Only save_correction is exposed: original, corrected and explanation, with request_id retry metadata and consent=true. Quotas remain shared per user; deletion receipts prevent retries from recreating deleted text.
 
-The browser sends the three form fields only when the user chooses Save; the database uses row-level security to separate accounts. Avoid entering secrets or private source code. Corrections can be deleted from the notebook. Account deletion, a public privacy policy, and production data-retention procedures are not yet implemented.
+MCP_ENABLED=false closes app routes; disabling the registry client or revoking its native OAuth grant stops direct authenticated RPC writes. The local ingress cap is process-local, so retain trusted upstream connection/request limits.
 
-## Deployment
-
-A production deployment requires an approved HTTPS site origin, separate production service configuration, verified access controls, a public privacy policy and a reviewed incident/data-retention plan. Build the exact commit with public configuration intended for that environment; Next.js can embed public variables into browser assets. Validate Google PKCE, redirect allowlists, session refresh, two-user RLS isolation, delete behavior and real browser flows before using real user data. The SQL is a one-time initial schema, not an automatic upgrade or a recorded migration history. Do not deploy or enable paid services without approval.
-
-The Dockerfile is provided as an optional build path; it has not been verified in a Linux deployment environment. MCP must remain disabled until resource-bound authorization, consent and revocation, distributed limits and real-client integration are independently reviewed and tested.
+Local tests execute real PostgreSQL/PGlite and real MCP SDK loopback HTTP/JWKS with synthetic Auth sessions. A separate unit test checks Supabase SDK bearer and RPC argument wiring. These tests do not verify hosted PostgREST resource-audience acceptance, actual provider/client OAuth, or native concurrent database locking. Verify those against the target configuration before production activation; do not broaden the audience requirement to make a rejected token work.

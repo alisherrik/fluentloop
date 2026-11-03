@@ -4,3 +4,4 @@ node_modules/
 !.env.example
 *.tsbuildinfo
 *.log
+next-env.d.ts

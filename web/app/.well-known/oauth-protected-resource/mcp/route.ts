@@ -1,4 +1,5 @@
+import { mcpConfig } from '../../../../lib/config.ts';
+import { protectedResourceMetadata } from '../../../../lib/mcp-route.ts';
 import { unavailable } from '../../../../lib/mcp-unavailable.ts';
-// Do not advertise OAuth resource metadata while the MCP endpoint is disabled.
 export const dynamic = 'force-dynamic';
-export const GET = unavailable;
+export function GET() { try { return protectedResourceMetadata(mcpConfig()); } catch { return unavailable(); } }
