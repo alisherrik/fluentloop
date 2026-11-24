@@ -100,7 +100,11 @@ async function setup(options, { input = process.stdin, output = process.stdout, 
     if (!previews.some(p => p.changed) && (!runtime || runtime.exists)) {
       output.write('Already up to date. No files changed.\n'); return { applied: false, previews };
     }
-    if (!options.yes && !/^(?:y|yes)$/i.test(await ask('Apply these changes? [y/N]: '))) {
+    // Install defaults to yes so Enter accepts every default; removal still needs an explicit yes.
+    const confirm = action === 'install'
+      ? answer => !/^(?:n|no)$/i.test(answer)
+      : answer => /^(?:y|yes)$/i.test(answer);
+    if (!options.yes && !confirm(await ask(`Apply these changes? ${action === 'install' ? '[Y/n]' : '[y/N]'}: `))) {
       output.write('Cancelled. No files changed.\n'); return { applied: false, previews };
     }
     if (options.yes) output.write('Confirmed by --yes.\n');

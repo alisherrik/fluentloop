@@ -8,7 +8,7 @@ Install Node.js 22+ (with npm) and Git, then run:
 npx --allow-git=root github:alisherrik/fluentloop init
 ```
 
-npm may ask to download the package. FluentLoop then asks which tool to set up: **Codex CLI**, **Claude Code**, or **both**. It shows the selected paths, runtime copy and exact hook definition before asking `Apply these changes? [y/N]`. Only `y` or `yes` applies changes. A blank response, `n`, or end of input writes nothing.
+npm may ask to download the package. FluentLoop then asks which tool to set up: **Codex CLI**, **Claude Code**, or **both**. It shows the selected paths, runtime copy and exact hook definition before asking `Apply these changes? [Y/n]`. Enter accepts every default and applies; `n` or end of input writes nothing. Removal asks `[y/N]` and needs an explicit `y`.
 
 Default scope is **user**, across your projects. The chooser marks an existing settings file as “settings found”; this does not prove the host is installed or its hook is active.
 

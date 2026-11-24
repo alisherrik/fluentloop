@@ -42,7 +42,7 @@ npm 12 blocks packages fetched from Git unless you pass `--allow-git=root`; olde
 2. Choose a coaching style: **light** (default), **coach** or **english-first**.
 3. Choose whether each session starts the corrections dashboard (default: yes).
 4. Review the preview. Default scope is your user account, across projects.
-5. Type `y` to apply. Enter or `n` cancels without writing files.
+5. Press Enter (or `y`) to apply; `n` cancels without writing files. Pressing Enter at every question installs the defaults.
 
 Change your answers later by running `init` again, for example `init --tool both --mode coach --dashboard no --yes`.
 
