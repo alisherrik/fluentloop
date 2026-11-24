@@ -3,7 +3,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { rejectLinks, ROOT } = require('./install.cjs');
-const FILES = ['adapters/codex.cjs', 'adapters/claude.cjs', 'src/engine.cjs', 'src/protocol.cjs', 'policy/coaching.md', 'LICENSE'];
+// Append only: earlier runtimes hashed a prefix of this list (0.2.0 used the first six).
+const LEGACY_FILES = ['adapters/codex.cjs', 'adapters/claude.cjs', 'src/engine.cjs', 'src/protocol.cjs', 'policy/coaching.md', 'LICENSE'];
+const FILES = [...LEGACY_FILES, 'adapters/stop.cjs', 'src/corrections.cjs'];
 const MARKER = 'fluentloop-runtime.json';
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 
@@ -32,10 +34,11 @@ function readManifest(root) {
   if (!fs.existsSync(target)) return null;
   let value;
   try { value = JSON.parse(fs.readFileSync(target, 'utf8')); } catch { return null; }
-  if (value?.owner !== 'fluentloop' || value.schema !== 1 || !value.files ||
-      Object.keys(value.files).length !== FILES.length ||
-      FILES.some(file => !/^[a-f0-9]{64}$/.test(value.files[file]))) return null;
-  const files = Object.fromEntries(FILES.map(file => [file, value.files[file]]));
+  if (value?.owner !== 'fluentloop' || value.schema !== 1 || !value.files || typeof value.files !== 'object') return null;
+  const listed = FILES.filter(file => Object.hasOwn(value.files, file));
+  if (Object.keys(value.files).length !== listed.length || ![LEGACY_FILES.length, FILES.length].includes(listed.length) ||
+      listed.some(file => !/^[a-f0-9]{64}$/.test(value.files[file]))) return null;
+  const files = Object.fromEntries(listed.map(file => [file, value.files[file]]));
   return hash(JSON.stringify(files)) === path.basename(root) ? { ...value, files } : null;
 }
 

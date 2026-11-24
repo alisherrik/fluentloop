@@ -5,65 +5,82 @@ const crypto = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
 const { MODES } = require('./engine.cjs');
 const ROOT = path.resolve(__dirname, '..');
+const EVENTS = ['UserPromptSubmit', 'Stop'];
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+function command(tool, root, adapter, args) {
+  if (!['codex', 'claude'].includes(tool)) throw new Error('Tool must be codex or claude.');
+  const script = path.join(root, 'adapters', adapter).replace(/\\/g, '/');
+  if (tool === 'claude') return { command: 'node', args: [script, '--fluentloop-managed=v1', ...args] };
+  // Codex shell commands must be safe across cmd, PowerShell and POSIX shells.
+  // Reject shell-active paths rather than guessing which shell will run them.
+  if (!/^[\p{L}\p{N} _./:()~\-]+$/u.test(script)) throw new Error('Codex hook paths support only letters, digits, spaces, _, -, ., /, :, ~, or parentheses. Choose a simple --data-dir (or checkout path for the low-level installer).');
+  return { command: `node "${script}" --fluentloop-managed=v1 ${args.join(' ')}` };
+}
 
 function makeHandler(tool, mode, root = ROOT) {
   if (!['codex', 'claude'].includes(tool)) throw new Error('Tool must be codex or claude.');
   if (!MODES.includes(mode)) throw new Error('Mode must be coach or english-first.');
-  const script = path.join(root, 'adapters', `${tool}.cjs`).replace(/\\/g, '/');
-  const base = { type: 'command', timeout: 5, statusMessage: 'FluentLoop: English practice' };
-  if (tool === 'claude') return { ...base, command: 'node', args: [script, '--fluentloop-managed=v1', '--mode', mode] };
-  // Codex shell commands must be safe across cmd, PowerShell and POSIX shells.
-  // Reject shell-active paths rather than guessing which shell will run them.
-  if (!/^[\p{L}\p{N} _./:()~\-]+$/u.test(script)) throw new Error('Codex hook paths support only letters, digits, spaces, _, -, ., /, :, ~, or parentheses. Choose a simple --data-dir (or checkout path for the low-level installer).');
-  return { ...base, command: `node "${script}" --fluentloop-managed=v1 --mode ${mode}` };
+  return { type: 'command', timeout: 5, statusMessage: 'FluentLoop: English practice', ...command(tool, root, `${tool}.cjs`, ['--mode', mode]) };
+}
+
+function makeStopHandler(tool, root = ROOT) {
+  return { type: 'command', timeout: 5, ...command(tool, root, 'stop.cjs', ['--tool', tool]) };
 }
 
 function validateConfig(config) {
   if (!isObject(config)) throw new Error('Settings must be a JSON object.');
   if (Object.hasOwn(config, 'hooks') && !isObject(config.hooks)) throw new Error('Settings hooks must be an object.');
-  const groups = config.hooks?.UserPromptSubmit;
-  if (groups !== undefined && (!Array.isArray(groups) || groups.some(g => !isObject(g) || !Array.isArray(g.hooks) || g.hooks.some(h => !isObject(h))))) {
-    throw new Error('UserPromptSubmit must contain groups with hook arrays.');
+  for (const event of EVENTS) {
+    const groups = config.hooks?.[event];
+    if (groups !== undefined && (!Array.isArray(groups) || groups.some(g => !isObject(g) || !Array.isArray(g.hooks) || g.hooks.some(h => !isObject(h))))) {
+      throw new Error(`${event} must contain groups with hook arrays.`);
+    }
   }
 }
 
 function plan(config, { action, tool, mode = 'coach', root = ROOT, knownRoots = [] }) {
   if (!['install', 'uninstall'].includes(action)) throw new Error('Action must be install or uninstall.');
   validateConfig(config);
-  const desired = makeHandler(tool, mode, root);
-  const known = MODES.map(m => makeHandler(tool, m, root));
+  const events = {
+    UserPromptSubmit: { desired: makeHandler(tool, mode, root), known: MODES.map(m => makeHandler(tool, m, root)) },
+    Stop: { desired: makeStopHandler(tool, root), known: [makeStopHandler(tool, root)] }
+  };
   for (const previousRoot of new Set(knownRoots)) {
     // A temporary package path may be shell-active even when the durable root is safe.
-    try { known.push(...MODES.map(m => makeHandler(tool, m, previousRoot))); }
-    catch { /* Such a path could not have been installed by our Codex shell adapter. */ }
+    try {
+      events.UserPromptSubmit.known.push(...MODES.map(m => makeHandler(tool, m, previousRoot)));
+      events.Stop.known.push(makeStopHandler(tool, previousRoot));
+    } catch { /* Such a path could not have been installed by our Codex shell adapter. */ }
   }
   const next = structuredClone(config);
   let found = 0;
-  const groups = [];
-  for (const group of next.hooks?.UserPromptSubmit || []) {
-    // Never take ownership of a user-edited group or handler.
-    const standardGroup = Object.keys(group).every(k => k === 'hooks');
-    const hooks = group.hooks.filter(handler => {
-      const owned = standardGroup && known.some(k => isDeepStrictEqual(handler, k));
-      const marked = (typeof handler.command === 'string' && handler.command.includes('--fluentloop-managed=v1')) ||
-        (Array.isArray(handler.args) && handler.args.includes('--fluentloop-managed=v1'));
-      if (marked && !owned) throw new Error('Found a modified FluentLoop hook or a different checkout. Restore its original definition or remove it manually after review; no settings changed.');
-      if (owned) found++;
-      return !owned;
-    });
-    if (hooks.length || hooks.length === group.hooks.length) groups.push({ ...group, hooks });
+  for (const [event, { desired, known }] of Object.entries(events)) {
+    const groups = [];
+    for (const group of next.hooks?.[event] || []) {
+      // Never take ownership of a user-edited group or handler.
+      const standardGroup = Object.keys(group).every(k => k === 'hooks');
+      const hooks = group.hooks.filter(handler => {
+        const owned = standardGroup && known.some(k => isDeepStrictEqual(handler, k));
+        const marked = (typeof handler.command === 'string' && handler.command.includes('--fluentloop-managed=v1')) ||
+          (Array.isArray(handler.args) && handler.args.includes('--fluentloop-managed=v1'));
+        if (marked && !owned) throw new Error('Found a modified FluentLoop hook or a different checkout. Restore its original definition or remove it manually after review; no settings changed.');
+        if (owned) found++;
+        return !owned;
+      });
+      if (hooks.length || hooks.length === group.hooks.length) groups.push({ ...group, hooks });
+    }
+    if (action === 'install') {
+      groups.push({ hooks: [desired] });
+      next.hooks ||= {};
+      next.hooks[event] = groups;
+    } else if (next.hooks?.[event]) {
+      if (groups.length) next.hooks[event] = groups;
+      else delete next.hooks[event];
+    }
   }
-  if (action === 'install') {
-    groups.push({ hooks: [desired] });
-    next.hooks ||= {};
-    next.hooks.UserPromptSubmit = groups;
-  } else if (found) {
-    if (groups.length) next.hooks.UserPromptSubmit = groups;
-    else delete next.hooks.UserPromptSubmit;
-    if (!Object.keys(next.hooks).length) delete next.hooks;
-  }
-  return { next, changed: !isDeepStrictEqual(config, next), found, handler: desired };
+  if (action === 'uninstall' && next.hooks && !Object.keys(next.hooks).length && found) delete next.hooks;
+  return { next, changed: !isDeepStrictEqual(config, next), found, handler: events.UserPromptSubmit.desired, stopHandler: events.Stop.desired };
 }
 
 function rejectLinks(target) {
@@ -95,7 +112,7 @@ function install({ configPath, dryRun = false, ...options }) {
   const { raw, config } = readSettings(target);
   const result = plan(config, options);
   const summary = { action: options.action, tool: options.tool, configPath: target, dryRun, changed: result.changed, matchingHandlers: result.found };
-  if (options.action === 'install') summary.handler = result.handler;
+  if (options.action === 'install') { summary.handler = result.handler; summary.stopHandler = result.stopHandler; }
   if (!result.changed || dryRun) return summary;
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const lock = `${target}.fluentloop.lock`;
@@ -116,4 +133,4 @@ function install({ configPath, dryRun = false, ...options }) {
   }
   return summary;
 }
-module.exports = { makeHandler, plan, install, rejectLinks, ROOT };
+module.exports = { makeHandler, makeStopHandler, plan, install, rejectLinks, ROOT };

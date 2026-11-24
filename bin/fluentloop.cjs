@@ -3,12 +3,16 @@
 const { setup } = require('../src/setup.cjs');
 const { handleInput } = require('../src/protocol.cjs');
 const { version } = require('../package.json');
+const os = require('node:os');
+const path = require('node:path');
+const { serve, DEFAULT_PORT } = require('../src/dashboard.cjs');
 const HELP = `FluentLoop — practise English while you build.
 
   fluentloop init                         Choose Codex, Claude Code or both
   fluentloop init --tool both --dry-run    Preview without writing
   fluentloop init --tool codex --yes       Confirm explicitly for scripts
   fluentloop uninstall                    Choose what to remove
+  fluentloop dashboard                    Open your corrections notebook on this computer
   fluentloop demo                         Local examples, no model calls
 
 Options:
@@ -21,6 +25,7 @@ Options:
   --data-dir <folder>       Runtime storage; default: <home>/.fluentloop
   --dry-run                Preview only; requires --tool
   --yes                    Confirm the preview noninteractively; requires --tool
+  --port <number>          Dashboard port; default: 4317
   --version                Print version
 
 Advanced aliases: install <codex|claude> --config <file> [options]
@@ -39,6 +44,19 @@ async function main(args) {
       const output = handleInput(JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt }), { mode: 'english-first' });
       process.stdout.write(JSON.stringify({ prompt, output }, null, 2) + '\n');
     }
+    return;
+  }
+  if (action === 'dashboard') {
+    const options = {};
+    const names = { '--port': 'port', '--home': 'home', '--data-dir': 'dataDir' };
+    for (let i = 0; i < rest.length; i++) {
+      if (names[rest[i]] && rest[i + 1] && !rest[i + 1].startsWith('--') && !(names[rest[i]] in options)) options[names[rest[i]]] = rest[++i];
+      else throw new Error(`Unknown, repeated or incomplete option: ${rest[i]}`);
+    }
+    const port = options.port === undefined ? DEFAULT_PORT : Number(options.port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('--port must be a number from 1 to 65535.');
+    const dataDir = path.resolve(options.dataDir || path.join(options.home || os.homedir(), '.fluentloop'));
+    await serve({ dataDir, port });
     return;
   }
   if (!['init', 'install', 'uninstall'].includes(action)) throw new Error('Unknown command. Run --help.');

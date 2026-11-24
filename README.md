@@ -79,6 +79,17 @@ Put these at the very start of the complete request:
 
 The hook is stateless: it cannot remember a rejected request or a task-wide opt-out. Resubmit the **complete** task after a block. In conversation, the model may recognize a retry or task-wide skip request; use the prefix on every turn when you need predictable local bypass. `FLUENTLOOP_DISABLED=1` in the host process environment disables FluentLoop output entirely.
 
+## Corrections notebook
+
+When the assistant corrects your wording, it ends the reply with a hidden one-line marker. A second FluentLoop hook (`Stop`) saves that correction to `~/.fluentloop/corrections.jsonl` on your computer. Browse, search and delete them in your browser:
+
+```sh
+npx fluentloop dashboard            # http://127.0.0.1:4317
+npx fluentloop dashboard --port 5000
+```
+
+The dashboard only listens on `127.0.0.1` and needs no account or network. Saving depends on the model adding the marker, so some corrections may be missed. Delete the file to clear the notebook.
+
 ## What it can and cannot do
 
 - Coaching uses the language abilities of your existing assistant. Feedback defaults to simple English, with a brief native-language explanation when the model can provide one.
@@ -89,7 +100,7 @@ The hook is stateless: it cannot remember a rejected request or a task-wide opt-
 
 ## Privacy and maintenance
 
-The hook reads the event from standard input and a bundled policy file. It does not read `transcript_path`, session directories, credentials or project files; it makes no network calls and writes no prompts, logs or state. Inputs over 1 MiB or malformed events produce `{}` (skip coaching).
+The prompt hook reads the event from standard input and a bundled policy file; it writes nothing. The `Stop` hook reads the assistant's last reply (from the event or, for Claude Code, the end of `transcript_path`) and appends only marked corrections to `<data-dir>/corrections.jsonl` (mode 0600). Neither hook reads credentials or project files or makes network calls. Inputs over 1 MiB or malformed events produce `{}`.
 
 Your host assistant still handles prompts under its own data and retention settings. Context injection uses tokens in that existing conversation; FluentLoop's hook itself does not make a paid model request.
 

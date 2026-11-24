@@ -71,7 +71,7 @@ async function setup(options, { input = process.stdin, output = process.stdout, 
     if (runtime) output.write(`Runtime: ${runtime.root} (${runtime.exists ? 'already present' : 'copy bundled files; independent of npm cache'})\n`);
     for (const preview of previews) {
       output.write(`${preview.tool}: ${preview.configPath}\n  ${preview.changed ? action === 'install' ? 'Add/update FluentLoop hook' : 'Remove matching FluentLoop hooks' : 'No settings change'}\n`);
-      if (preview.handler) output.write(`  Hook: ${JSON.stringify(preview.handler)}\n`);
+      if (preview.handler) output.write(`  Hook: ${JSON.stringify(preview.handler)}\n  Stop hook (saves corrections locally): ${JSON.stringify(preview.stopHandler)}\n`);
     }
     output.write('Other settings stay intact. Hook trust and permissions are not changed.\n');
     if (options.dryRun) { output.write('Dry run — no files written.\n'); return { applied: false, previews }; }
