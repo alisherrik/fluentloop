@@ -68,12 +68,16 @@ async function setup(options, { input = process.stdin, output = process.stdout, 
     const requests = tools.map(t => ({ action, tool: t, configPath: locations.configs[t], mode: options.mode || 'coach', root, knownRoots }));
     const previews = requests.map(request => install({ ...request, dryRun: true }));
     output.write(`\n${action === 'install' ? 'Setup' : 'Removal'} preview — ${options.config ? 'explicit settings file' : locations.scope === 'user' ? 'user scope (all projects)' : 'project scope'}\n`);
-    if (runtime) output.write(`Runtime: ${runtime.root} (${runtime.exists ? 'already present' : 'copy bundled files; independent of npm cache'})\n`);
+    const short = file => file.startsWith(locations.home + path.sep) ? '~' + file.slice(locations.home.length) : file;
+    const names = { codex: 'Codex CLI', claude: 'Claude Code' };
+    const width = Math.max(...previews.map(p => short(p.configPath).length));
     for (const preview of previews) {
-      output.write(`${preview.tool}: ${preview.configPath}\n  ${preview.changed ? action === 'install' ? 'Add/update FluentLoop hook' : 'Remove matching FluentLoop hooks' : 'No settings change'}\n`);
-      if (preview.handler) output.write(`  Hook: ${JSON.stringify(preview.handler)}\n  Stop hook (saves corrections locally): ${JSON.stringify(preview.stopHandler)}\n`);
+      const change = !preview.changed ? 'no change' : action === 'install' ? 'add coaching + correction-saver hooks' : 'remove FluentLoop hooks';
+      output.write(`  ${names[preview.tool].padEnd(14)}${short(preview.configPath).padEnd(width + 3)}${change}\n`);
+      if (options.dryRun && preview.handler) output.write(`    Coaching hook: ${JSON.stringify(preview.handler)}\n    Correction saver (Stop): ${JSON.stringify(preview.stopHandler)}\n`);
     }
-    output.write('Other settings stay intact. Hook trust and permissions are not changed.\n');
+    if (runtime) output.write(`  ${'Hook files'.padEnd(14)}${options.dryRun ? runtime.root : short(path.dirname(runtime.root)) + path.sep + path.basename(runtime.root).slice(0, 8) + '…'} (${runtime.exists ? 'already present' : 'new copy'})\n`);
+    output.write(`Other settings stay intact. Hook trust and permissions are not changed.${options.dryRun ? '' : ' Use --dry-run to see the exact hooks.'}\n`);
     if (options.dryRun) { output.write('Dry run — no files written.\n'); return { applied: false, previews }; }
     if (!previews.some(p => p.changed) && (!runtime || runtime.exists)) {
       output.write('Already up to date. No files changed.\n'); return { applied: false, previews };
