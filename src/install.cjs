@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
 const { MODES } = require('./engine.cjs');
 const ROOT = path.resolve(__dirname, '..');
-const EVENTS = ['UserPromptSubmit', 'Stop'];
+const EVENTS = ['UserPromptSubmit', 'Stop', 'SessionStart'];
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function command(tool, root, adapter, args) {
@@ -20,12 +20,16 @@ function command(tool, root, adapter, args) {
 
 function makeHandler(tool, mode, root = ROOT) {
   if (!['codex', 'claude'].includes(tool)) throw new Error('Tool must be codex or claude.');
-  if (!MODES.includes(mode)) throw new Error('Mode must be coach or english-first.');
+  if (!MODES.includes(mode)) throw new Error('Mode must be coach, english-first or light.');
   return { type: 'command', timeout: 5, statusMessage: 'FluentLoop: English practice', ...command(tool, root, `${tool}.cjs`, ['--mode', mode]) };
 }
 
 function makeStopHandler(tool, root = ROOT) {
   return { type: 'command', timeout: 5, ...command(tool, root, 'stop.cjs', ['--tool', tool]) };
+}
+
+function makeSessionHandler(tool, root = ROOT) {
+  return { type: 'command', timeout: 5, ...command(tool, root, 'session.cjs', ['--tool', tool]) };
 }
 
 function validateConfig(config) {
@@ -39,18 +43,21 @@ function validateConfig(config) {
   }
 }
 
-function plan(config, { action, tool, mode = 'coach', root = ROOT, knownRoots = [] }) {
+function plan(config, { action, tool, mode = 'coach', dashboard = false, root = ROOT, knownRoots = [] }) {
   if (!['install', 'uninstall'].includes(action)) throw new Error('Action must be install or uninstall.');
   validateConfig(config);
   const events = {
     UserPromptSubmit: { desired: makeHandler(tool, mode, root), known: MODES.map(m => makeHandler(tool, m, root)) },
-    Stop: { desired: makeStopHandler(tool, root), known: [makeStopHandler(tool, root)] }
+    Stop: { desired: makeStopHandler(tool, root), known: [makeStopHandler(tool, root)] },
+    // Optional: starts the local dashboard with each session. Always recognized so it can be turned off.
+    SessionStart: { desired: dashboard ? makeSessionHandler(tool, root) : null, known: [makeSessionHandler(tool, root)] }
   };
   for (const previousRoot of new Set(knownRoots)) {
     // A temporary package path may be shell-active even when the durable root is safe.
     try {
       events.UserPromptSubmit.known.push(...MODES.map(m => makeHandler(tool, m, previousRoot)));
       events.Stop.known.push(makeStopHandler(tool, previousRoot));
+      events.SessionStart.known.push(makeSessionHandler(tool, previousRoot));
     } catch { /* Such a path could not have been installed by our Codex shell adapter. */ }
   }
   const next = structuredClone(config);
@@ -70,7 +77,7 @@ function plan(config, { action, tool, mode = 'coach', root = ROOT, knownRoots = 
       });
       if (hooks.length || hooks.length === group.hooks.length) groups.push({ ...group, hooks });
     }
-    if (action === 'install') {
+    if (action === 'install' && desired) {
       groups.push({ hooks: [desired] });
       next.hooks ||= {};
       next.hooks[event] = groups;
@@ -79,8 +86,8 @@ function plan(config, { action, tool, mode = 'coach', root = ROOT, knownRoots = 
       else delete next.hooks[event];
     }
   }
-  if (action === 'uninstall' && next.hooks && !Object.keys(next.hooks).length && found) delete next.hooks;
-  return { next, changed: !isDeepStrictEqual(config, next), found, handler: events.UserPromptSubmit.desired, stopHandler: events.Stop.desired };
+  if (next.hooks && !Object.keys(next.hooks).length && found) delete next.hooks;
+  return { next, changed: !isDeepStrictEqual(config, next), found, handler: events.UserPromptSubmit.desired, stopHandler: events.Stop.desired, sessionHandler: events.SessionStart.desired };
 }
 
 function rejectLinks(target) {
@@ -112,7 +119,7 @@ function install({ configPath, dryRun = false, ...options }) {
   const { raw, config } = readSettings(target);
   const result = plan(config, options);
   const summary = { action: options.action, tool: options.tool, configPath: target, dryRun, changed: result.changed, matchingHandlers: result.found };
-  if (options.action === 'install') { summary.handler = result.handler; summary.stopHandler = result.stopHandler; }
+  if (options.action === 'install') { summary.handler = result.handler; summary.stopHandler = result.stopHandler; summary.sessionHandler = result.sessionHandler; }
   if (!result.changed || dryRun) return summary;
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const lock = `${target}.fluentloop.lock`;
@@ -133,4 +140,4 @@ function install({ configPath, dryRun = false, ...options }) {
   }
   return summary;
 }
-module.exports = { makeHandler, makeStopHandler, plan, install, rejectLinks, ROOT };
+module.exports = { makeHandler, makeStopHandler, makeSessionHandler, plan, install, rejectLinks, ROOT };

@@ -2,7 +2,18 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const POLICY = fs.readFileSync(path.join(__dirname, '../policy/coaching.md'), 'utf8').trim();
-const MODES = ['coach', 'english-first'];
+const MODES = ['coach', 'english-first', 'light'];
+// light: same coaching, but never hold the task back waiting for a rewrite.
+const LIGHT_SWAPS = [
+  ['invite a simple English attempt with one vocabulary cue or sentence starter. Avoid supplying a full translation immediately.',
+   'show a simple English version with one vocabulary cue, then do the task in the same reply.'],
+  ['offer corrected wording, two short explanations, and ask for one rewrite before doing the task.',
+   'offer corrected wording and two short explanations, then do the task in the same reply. Do not ask for a rewrite.']
+];
+const LIGHT = LIGHT_SWAPS.reduce((text, [from, to]) => {
+  if (!text.includes(from)) throw new Error('FluentLoop light policy is out of date with coaching.md.');
+  return text.replace(from, to);
+}, POLICY);
 const MAX_INPUT_BYTES = 1024 * 1024;
 const CONTROL = /^\s*\[fluentloop:(skip|retry)\](?:\s|$)/i;
 const SKIP = 'FluentLoop: skip English coaching for this turn and proceed with the request under normal authorization rules. Treat the coaching control prefix as metadata.';
@@ -45,7 +56,7 @@ function recognizedNonEnglishWork(prose) {
 }
 
 function evaluate(input, { mode = 'coach', disabled = false } = {}) {
-  if (!MODES.includes(mode)) throw new Error('Mode must be coach or english-first.');
+  if (!MODES.includes(mode)) throw new Error('Mode must be coach, english-first or light.');
   if (disabled || !input || Array.isArray(input) || input.hook_event_name !== 'UserPromptSubmit' || typeof input.prompt !== 'string') return { kind: 'pass' };
   if (Buffer.byteLength(input.prompt, 'utf8') > MAX_INPUT_BYTES) return { kind: 'pass' };
   const control = input.prompt.match(CONTROL)?.[1].toLowerCase();
@@ -60,7 +71,7 @@ function evaluate(input, { mode = 'coach', disabled = false } = {}) {
     kind: 'block',
     reason: 'FluentLoop: try this coding/work request in simple English. Start with "I want to ...". This is a limited local language heuristic, not a grammar check. Resubmit the complete request in English; prefix [fluentloop:retry] to continue after an attempt, or [fluentloop:skip] to skip this turn.'
   };
-  return { kind: 'context', context: POLICY };
+  return { kind: 'context', context: mode === 'light' ? LIGHT : POLICY };
 }
 
 module.exports = { evaluate, ownProse, recognizedNonEnglishWork, MODES, MAX_INPUT_BYTES };

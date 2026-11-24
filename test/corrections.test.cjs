@@ -112,3 +112,52 @@ test('0.2.0 six-file runtimes stay recognized after the runtime gained files', t
   fs.writeFileSync(path.join(root, 'fluentloop-runtime.json'), JSON.stringify({ owner: 'fluentloop', schema: 1, files }));
   assert.deepEqual(knownRuntimes(dataDir), [root]);
 });
+
+test('light mode corrects and continues without asking for a rewrite', () => {
+  const { evaluate } = require('../src/engine.cjs');
+  const event = { hook_event_name: 'UserPromptSubmit', prompt: 'I wants add test for login handler.' };
+  const light = evaluate(event, { mode: 'light' }).context;
+  assert.match(light, /then do the task in the same reply\. Do not ask for a rewrite\./);
+  assert.doesNotMatch(light, /ask for one rewrite before doing the task/);
+  assert.match(evaluate(event, { mode: 'coach' }).context, /ask for one rewrite before doing the task/);
+  assert.equal(evaluate({ ...event, prompt: 'Menga login kodni tuzat' }, { mode: 'light' }).kind, 'context');
+});
+
+for (const tool of ['claude', 'codex']) {
+  test(`${tool}: dashboard autostart hook can be turned on and off`, () => {
+    const { plan, makeSessionHandler } = require('../src/install.cjs');
+    const on = plan({}, { action: 'install', tool, mode: 'light', dashboard: true }).next;
+    assert.deepEqual(on.hooks.SessionStart, [{ hooks: [makeSessionHandler(tool)] }]);
+    const off = plan(on, { action: 'install', tool, mode: 'light', dashboard: false }).next;
+    assert.equal(off.hooks.SessionStart, undefined);
+    assert.ok(off.hooks.UserPromptSubmit && off.hooks.Stop);
+    assert.deepEqual(plan(on, { action: 'uninstall', tool }).next, {});
+  });
+}
+
+test('ensureRunning starts one detached dashboard and stop only stops its own', async t => {
+  const { ensureRunning, probe, stop } = require('../src/dashboard.cjs');
+  const dir = tmp(t);
+  const port = 20000 + Math.floor(Math.random() * 20000);
+  t.after(() => stop({ dataDir: dir, port }).catch(() => {}));
+  assert.equal(await ensureRunning({ dataDir: dir, port }), true);
+  let pid = null;
+  for (let i = 0; i < 50 && !pid; i++) { await new Promise(r => setTimeout(r, 100)); pid = await probe(port); }
+  assert.ok(pid, 'dashboard did not start');
+  assert.equal(await ensureRunning({ dataDir: dir, port }), false);
+  assert.equal(await stop({ dataDir: path.join(dir, 'other'), port }), false);
+  assert.equal(await stop({ dataDir: dir, port }), true);
+  for (let i = 0; i < 50 && await probe(port); i++) await new Promise(r => setTimeout(r, 100));
+  assert.equal(await probe(port), null);
+});
+
+test('8-file runtimes from the first notebook build stay recognized', t => {
+  const dataDir = tmp(t);
+  const { FILES } = require('../src/runtime.cjs');
+  const hash = value => crypto.createHash('sha256').update(value).digest('hex');
+  const files = Object.fromEntries(FILES.slice(0, 8).map(file => [file, hash(fs.readFileSync(path.join(ROOT, file)))]));
+  const root = path.join(dataDir, 'runtimes', hash(JSON.stringify(files)));
+  fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(path.join(root, 'fluentloop-runtime.json'), JSON.stringify({ owner: 'fluentloop', schema: 1, files }));
+  assert.deepEqual(knownRuntimes(dataDir), [root]);
+});

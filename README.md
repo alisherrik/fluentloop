@@ -22,7 +22,8 @@ Coach:  Clear request. Let's add the test.
 
 | Mode | What runs locally | What the assistant is asked to do |
 | --- | --- | --- |
-| `coach` (default) | Adds the shared coaching policy as context; never blocks locally | Review the user's work prose, offer a short correction when useful, and proceed after one retry |
+| `light` (default) | Adds the coaching policy as context; never blocks locally | Correct the user's wording briefly, then do the task in the same reply; never wait for a rewrite |
+| `coach` | Adds the shared coaching policy as context; never blocks locally | Review the user's work prose, offer a short correction when useful, and proceed after one retry |
 | `english-first` | Also blocks a small set of recognizable non-English work requests | Coach prompts that pass the local heuristic |
 
 The local gate **does not check English grammar**. If it blocks, the prompt never reaches the model: only a static rewrite cue is shown. Model-guided coaching is fallible and cannot guarantee that an assistant waits, gives correct feedback, or obeys every coaching preference.
@@ -32,12 +33,18 @@ The local gate **does not check English grammar**. If it blocks, the prompt neve
 With Node.js 22+, npm and Git installed, run:
 
 ```sh
-npx github:alisherrik/fluentloop init
+npx --allow-git=root github:alisherrik/fluentloop init
 ```
 
+npm 12 blocks packages fetched from Git unless you pass `--allow-git=root`; older npm ignores the flag.
+
 1. Choose **Codex CLI**, **Claude Code**, or **both**.
-2. Review the detected settings paths and hook preview. Default scope is your user account, across projects.
-3. Type `y` to apply. Enter or `n` cancels without writing files.
+2. Choose a coaching style: **light** (default), **coach** or **english-first**.
+3. Choose whether each session starts the corrections dashboard (default: yes).
+4. Review the preview. Default scope is your user account, across projects.
+5. Type `y` to apply. Enter or `n` cancels without writing files.
+
+Change your answers later by running `init` again, for example `init --tool both --mode coach --dashboard no --yes`.
 
 Then open `/hooks` in your coding tool to review activation. FluentLoop never approves trust or changes permissions. Restart the host if needed. **Installing settings is not proof of live activation.**
 
@@ -46,12 +53,12 @@ This command fetches this GitHub repository through npm. The shorter **`npx flue
 ### Preview, project scope, or remove
 
 ```sh
-npx github:alisherrik/fluentloop init --tool both --dry-run
-npx github:alisherrik/fluentloop init --scope project
-npx github:alisherrik/fluentloop uninstall
+npx --allow-git=root github:alisherrik/fluentloop init --tool both --dry-run
+npx --allow-git=root github:alisherrik/fluentloop init --scope project
+npx --allow-git=root github:alisherrik/fluentloop uninstall
 ```
 
-For project scope, run from the project root or pass `--project "/path/to/project"`. Settings in other scopes remain untouched. A script can explicitly confirm with `--tool codex --yes`. Choose the optional gate with `--mode english-first`; the default is `coach`.
+For project scope, run from the project root or pass `--project "/path/to/project"`. Settings in other scopes remain untouched. A script can explicitly confirm with `--tool codex --yes`. Choose the style with `--mode light|coach|english-first`; the default is `light`.
 
 Setup copies only the bundled hook runtime and license to `~/.fluentloop/runtimes/<content-hash>`. The installed hook survives npm cache cleanup, package removal and moving a checkout. Repeating setup is safe. Uninstall removes matching hooks from the selected settings and retains runtime files in case another scope uses them. Node must remain on the host's `PATH`.
 
@@ -81,14 +88,17 @@ The hook is stateless: it cannot remember a rejected request or a task-wide opt-
 
 ## Corrections notebook
 
-When the assistant corrects your wording, it ends the reply with a hidden one-line marker. A second FluentLoop hook (`Stop`) saves that correction to `~/.fluentloop/corrections.jsonl` on your computer. Browse, search and delete them in your browser:
+When the assistant corrects your wording, it ends the reply with a hidden one-line marker. A second FluentLoop hook (`Stop`) saves that correction to `~/.fluentloop/corrections.jsonl` on your computer.
+
+With the dashboard enabled, a `SessionStart` hook checks `http://127.0.0.1:4317/health` and, if nothing answers, starts the dashboard in the background. It keeps running after the session ends. Open http://127.0.0.1:4317 to browse, search and delete corrections. Without the hook, or on another port:
 
 ```sh
-npx fluentloop dashboard            # http://127.0.0.1:4317
-npx fluentloop dashboard --port 5000
+npx --allow-git=root github:alisherrik/fluentloop dashboard
+npx --allow-git=root github:alisherrik/fluentloop dashboard --port 5000
+npx --allow-git=root github:alisherrik/fluentloop dashboard stop
 ```
 
-The dashboard only listens on `127.0.0.1` and needs no account or network. Saving depends on the model adding the marker, so some corrections may be missed. Delete the file to clear the notebook.
+The dashboard only listens on `127.0.0.1` and needs no account or network. `uninstall` also stops it. Saving depends on the model adding the marker, so some corrections may be missed. Delete the file to clear the notebook.
 
 ## What it can and cannot do
 
@@ -100,7 +110,7 @@ The dashboard only listens on `127.0.0.1` and needs no account or network. Savin
 
 ## Privacy and maintenance
 
-The prompt hook reads the event from standard input and a bundled policy file; it writes nothing. The `Stop` hook reads the assistant's last reply (from the event or, for Claude Code, the end of `transcript_path`) and appends only marked corrections to `<data-dir>/corrections.jsonl` (mode 0600). Neither hook reads credentials or project files or makes network calls. Inputs over 1 MiB or malformed events produce `{}`.
+The prompt hook reads the event from standard input and a bundled policy file; it writes nothing. The `Stop` hook reads the assistant's last reply (from the event or, for Claude Code, the end of `transcript_path`) and appends only marked corrections to `<data-dir>/corrections.jsonl` (mode 0600). The optional `SessionStart` hook only calls `127.0.0.1:4317` and may start the local dashboard. No hook reads credentials or project files or contacts the internet. Inputs over 1 MiB or malformed events produce `{}`.
 
 Your host assistant still handles prompts under its own data and retention settings. Context injection uses tokens in that existing conversation; FluentLoop's hook itself does not make a paid model request.
 

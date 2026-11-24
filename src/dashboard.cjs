@@ -1,8 +1,12 @@
 'use strict';
 // Local-only corrections dashboard. Binds to 127.0.0.1; no network, accounts or dependencies.
+const fs = require('node:fs');
+const path = require('node:path');
 const http = require('node:http');
+const { spawn } = require('node:child_process');
 const { list, remove } = require('./corrections.cjs');
 const DEFAULT_PORT = 4317;
+const PID_FILE = 'dashboard.pid';
 
 const PAGE = `<!doctype html>
 <html lang="en">
@@ -89,6 +93,7 @@ function createServer({ dataDir, port = DEFAULT_PORT }) {
     if (!allowedHosts.has(req.headers.host)) return send(421, '{"error":"misdirected request"}');
     const url = new URL(req.url, `http://${req.headers.host}`);
     try {
+      if (req.method === 'GET' && url.pathname === '/health') return send(200, JSON.stringify({ app: 'fluentloop', pid: process.pid, dataDir }));
       if (req.method === 'GET' && url.pathname === '/') return send(200, PAGE, 'text/html; charset=utf-8');
       if (req.method === 'GET' && url.pathname === '/api/corrections') return send(200, JSON.stringify(list(dataDir)));
       const match = /^\/api\/corrections\/([a-f0-9]{16})$/.exec(url.pathname);
@@ -115,4 +120,54 @@ function serve({ dataDir, port = DEFAULT_PORT, output = process.stdout }) {
     });
   });
 }
-module.exports = { createServer, serve, DEFAULT_PORT };
+// Resolves to the dashboard's pid when a FluentLoop dashboard answers on the port, else null.
+function probe(port = DEFAULT_PORT, timeout = 500, dataDir) {
+  return new Promise(resolve => {
+    const req = http.get({ host: '127.0.0.1', port, path: '/health', timeout }, res => {
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => { body += chunk; });
+      res.on('end', () => {
+        try { const value = JSON.parse(body); resolve(value.app === 'fluentloop' && Number.isInteger(value.pid) && (!dataDir || value.dataDir === dataDir) ? value.pid : null); } catch { resolve(null); }
+      });
+    });
+    req.on('timeout', () => req.destroy());
+    req.on('error', () => resolve(null));
+  });
+}
+
+// Same pattern as claude-mem's worker: check health, otherwise spawn a detached server that outlives the session.
+async function ensureRunning({ dataDir, port = DEFAULT_PORT }) {
+  if (await probe(port)) return false;
+  const setsid = '/usr/bin/setsid';
+  const args = [__filename, '--daemon', '--data-dir', dataDir, '--port', String(port)];
+  const useSetsid = process.platform !== 'win32' && fs.existsSync(setsid);
+  const child = spawn(useSetsid ? setsid : process.execPath, useSetsid ? [process.execPath, ...args] : args, { detached: true, stdio: 'ignore', windowsHide: true });
+  child.unref();
+  return true;
+}
+
+async function stop({ dataDir, port = DEFAULT_PORT }) {
+  // Only stop the dashboard that serves this data directory.
+  const pid = await probe(port, 500, path.resolve(dataDir));
+  if (!pid) return false;
+  process.kill(pid);
+  try { fs.unlinkSync(path.join(dataDir, PID_FILE)); } catch { /* already gone */ }
+  return true;
+}
+
+async function daemon(args) {
+  const value = flag => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : undefined; };
+  const dataDir = path.resolve(value('--data-dir'));
+  const port = Number(value('--port') || DEFAULT_PORT);
+  const server = await serve({ dataDir, port, output: { write() {} } });
+  fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+  fs.writeFileSync(path.join(dataDir, PID_FILE), String(process.pid) + '\n', { mode: 0o600 });
+  const shutdown = () => server.close(() => process.exit(0));
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+}
+
+module.exports = { createServer, serve, probe, ensureRunning, stop, DEFAULT_PORT };
+// A port already in use (another dashboard won the race) just exits quietly.
+if (require.main === module && process.argv.includes('--daemon')) daemon(process.argv.slice(2)).catch(() => process.exit(0));

@@ -5,7 +5,7 @@ const { handleInput } = require('../src/protocol.cjs');
 const { version } = require('../package.json');
 const os = require('node:os');
 const path = require('node:path');
-const { serve, DEFAULT_PORT } = require('../src/dashboard.cjs');
+const { serve, stop, DEFAULT_PORT } = require('../src/dashboard.cjs');
 const HELP = `FluentLoop — practise English while you build.
 
   fluentloop init                         Choose Codex, Claude Code or both
@@ -13,6 +13,7 @@ const HELP = `FluentLoop — practise English while you build.
   fluentloop init --tool codex --yes       Confirm explicitly for scripts
   fluentloop uninstall                    Choose what to remove
   fluentloop dashboard                    Open your corrections notebook on this computer
+  fluentloop dashboard stop               Stop a dashboard started by a session
   fluentloop demo                         Local examples, no model calls
 
 Options:
@@ -20,7 +21,8 @@ Options:
   --scope user|project      Default: user (all projects)
   --project <folder>        Project folder; requires --scope project
   --config <file>           Override one selected tool's settings file
-  --mode coach|english-first  Default: coach; init only
+  --mode light|coach|english-first  Default: light (correct and continue); init only
+  --dashboard yes|no        Start the dashboard with each session; default: yes; init only
   --home <folder>           Alternate home; config-directory environment variables still apply
   --data-dir <folder>       Runtime storage; default: <home>/.fluentloop
   --dry-run                Preview only; requires --tool
@@ -47,6 +49,8 @@ async function main(args) {
     return;
   }
   if (action === 'dashboard') {
+    const stopping = rest[0] === 'stop';
+    if (stopping) rest.shift();
     const options = {};
     const names = { '--port': 'port', '--home': 'home', '--data-dir': 'dataDir' };
     for (let i = 0; i < rest.length; i++) {
@@ -56,6 +60,7 @@ async function main(args) {
     const port = options.port === undefined ? DEFAULT_PORT : Number(options.port);
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('--port must be a number from 1 to 65535.');
     const dataDir = path.resolve(options.dataDir || path.join(options.home || os.homedir(), '.fluentloop'));
+    if (stopping) { process.stdout.write(await stop({ dataDir, port }) ? 'Dashboard stopped.\n' : 'No FluentLoop dashboard is running.\n'); return; }
     await serve({ dataDir, port });
     return;
   }
@@ -64,7 +69,7 @@ async function main(args) {
   const legacy = rest[0] && !rest[0].startsWith('--');
   if (legacy) options.tool = rest.shift();
   if (action === 'init' && legacy) throw new Error('Use init --tool <codex|claude|both>.');
-  const names = { '--tool': 'tool', '--scope': 'scope', '--project': 'project', '--config': 'config', '--mode': 'mode', '--home': 'home', '--data-dir': 'dataDir' };
+  const names = { '--tool': 'tool', '--scope': 'scope', '--project': 'project', '--config': 'config', '--mode': 'mode', '--home': 'home', '--data-dir': 'dataDir', '--dashboard': 'dashboard' };
   const seen = new Set(legacy ? ['--tool'] : []);
   for (let i = 0; i < rest.length; i++) {
     const flag = rest[i];
@@ -75,7 +80,7 @@ async function main(args) {
     else if (names[flag] && rest[i + 1] && !rest[i + 1].startsWith('--')) options[names[flag]] = rest[++i];
     else throw new Error(`Unknown or incomplete option: ${flag}`);
   }
-  if (action === 'uninstall' && options.mode) throw new Error('uninstall removes either mode; omit --mode.');
+  if (action === 'uninstall' && (options.mode || options.dashboard)) throw new Error('uninstall removes every FluentLoop hook; omit --mode and --dashboard.');
   if ((legacy || action === 'install') && (!options.config || !['codex', 'claude'].includes(options.tool))) throw new Error('The explicit install/uninstall alias requires a tool and --config. Or use init --tool.');
   await setup(options);
 }

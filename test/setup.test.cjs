@@ -33,7 +33,7 @@ for (const [choice, tools] of [['1', ['codex']], ['2', ['claude']], ['3', ['code
     const { home, run } = fixture(t);
     const paths = resolvePaths({ home }, {}).configs;
     for (const tool of tools) write(paths[tool], foreign());
-    const result = run(['init'], `${choice}\nyes\n`);
+    const result = run(['init'], `${choice}\n\n\nyes\n`); // tool, default style, default dashboard, confirm
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Setup preview/);
     assert.match(result.stdout, /Apply these changes\? \[y\/N\]/);
@@ -77,7 +77,7 @@ test('dry-run both creates no directories, including alternate runtime destinati
 test('chooser detects existing settings without claiming the tool is installed', t => {
   const { home, run } = fixture(t);
   write(path.join(home, '.claude/settings.json'), {});
-  const result = run(['init'], '\nn\n');
+  const result = run(['init'], '\n\n\nn\n');
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Claude Code \(settings found\)/);
   assert.match(result.stdout, /Choose a tool \[2\]/);
@@ -85,7 +85,7 @@ test('chooser detects existing settings without claiming the tool is installed',
 });
 test('chooser retries invalid input and confirmation defaults to no', t => {
   const { home, run } = fixture(t);
-  const result = run(['init'], 'wrong\n2\n\n');
+  const result = run(['init'], 'wrong\n2\n\n\n\n');
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Enter 1, 2 or 3/);
   assert.deepEqual(fs.readdirSync(home), []);
