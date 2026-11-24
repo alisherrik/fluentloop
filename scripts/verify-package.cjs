@@ -37,9 +37,11 @@ function run(args, options = {}) {
   return result.stdout;
 }
 try {
-  const metadata = JSON.parse(run(['pack', ROOT, '--pack-destination', dir, '--ignore-scripts', '--json', '--offline']))[0];
+  const packed = JSON.parse(run(['pack', ROOT, '--pack-destination', dir, '--ignore-scripts', '--json', '--offline']));
+  // npm <=10 prints an array; newer npm prints an object keyed by package name.
+  const metadata = Array.isArray(packed) ? packed[0] : Object.values(packed)[0];
   const paths = metadata.files.map(file => file.path);
-  for (const required of ['bin/fluentloop.cjs', 'src/setup.cjs', 'src/runtime.cjs', 'src/engine.cjs', 'adapters/codex.cjs', 'adapters/claude.cjs', 'policy/coaching.md', 'LICENSE']) assert.ok(paths.includes(required), required);
+  for (const required of ['bin/fluentloop.cjs', 'src/setup.cjs', 'src/runtime.cjs', 'src/engine.cjs', 'adapters/codex.cjs', 'adapters/claude.cjs', 'adapters/stop.cjs', 'adapters/session.cjs', 'src/corrections.cjs', 'src/dashboard.cjs', 'policy/coaching.md', 'LICENSE']) assert.ok(paths.includes(required), required);
   for (const file of paths) assert.match(file, /^(?:bin\/|src\/|adapters\/|policy\/|examples\/|docs\/|README\.md$|LICENSE$|LICENSE-GUIDANCE\.md$|package\.json$)/);
   const binMode = metadata.files.find(file => file.path === 'bin/fluentloop.cjs').mode;
   assert.ok(binMode & 0o444, 'Packed bin must be readable.');

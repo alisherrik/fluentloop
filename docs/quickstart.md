@@ -5,10 +5,10 @@
 Install Node.js 22+ (with npm) and Git, then run:
 
 ```sh
-npx github:alisherrik/fluentloop init
+npx --allow-git=root github:alisherrik/fluentloop init
 ```
 
-npm may ask to download the package. FluentLoop then asks which tool to set up: **Codex CLI**, **Claude Code**, or **both**. It shows the selected paths, runtime copy and exact hook definition before asking `Apply these changes? [y/N]`. Only `y` or `yes` applies changes. A blank response, `n`, or end of input writes nothing.
+npm may ask to download the package. FluentLoop then asks which tool to set up: **Codex CLI**, **Claude Code**, or **both**. It shows the selected paths, runtime copy and exact hook definition before asking `Apply these changes? [Y/n]`. Enter accepts every default and applies; `n` or end of input writes nothing. Removal asks `[y/N]` and needs an explicit `y`.
 
 Default scope is **user**, across your projects. The chooser marks an existing settings file as “settings found”; this does not prove the host is installed or its hook is active.
 
@@ -29,7 +29,7 @@ Open `/hooks` in the selected coding tool, review the adapter and complete the h
 
 ## Useful commands
 
-The examples below use `fluentloop` after a global install. With no global install, replace it with `npx github:alisherrik/fluentloop`. From a source checkout, use `node bin/fluentloop.cjs`.
+The examples below use `fluentloop` after a global install. With no global install, replace it with `npx --allow-git=root github:alisherrik/fluentloop`. From a source checkout, use `node bin/fluentloop.cjs`.
 
 ```sh
 fluentloop init --tool both --dry-run
@@ -41,7 +41,7 @@ fluentloop uninstall --tool both --dry-run
 fluentloop uninstall --tool both --yes
 ```
 
-`--yes` is explicit noninteractive confirmation, not a host trust bypass. It requires `--tool`; the preview still prints. `--dry-run` also requires `--tool` and writes neither runtime nor settings. Default mode is `coach`; `english-first` adds only a limited non-English vocabulary gate. Both support `[fluentloop:skip]` and `[fluentloop:retry]` at the start of your complete request.
+`--yes` is explicit noninteractive confirmation, not a host trust bypass. It requires `--tool`; the preview still prints. `--dry-run` also requires `--tool` and writes neither runtime nor settings. Default mode is `light` (correct and continue); `coach` asks for one rewrite first; `english-first` adds a limited non-English vocabulary gate. `--dashboard yes|no` controls the session dashboard (default: yes). Both support `[fluentloop:skip]` and `[fluentloop:retry]` at the start of your complete request.
 
 ## Where setup writes
 
